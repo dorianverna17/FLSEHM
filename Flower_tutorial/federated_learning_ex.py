@@ -168,22 +168,55 @@ def client_fn(context: Context) -> Client:
 client = ClientApp(client_fn=client_fn)
 
 
-# Create FedAvg strategy
-strategy = FedAvg(
-    fraction_fit=1.0,  # Sample 100% of available clients for training
-    fraction_evaluate=0.5,  # Sample 50% of available clients for evaluation
-    min_fit_clients=10,  # Never sample less than 10 clients for training
-    min_evaluate_clients=5,  # Never sample less than 5 clients for evaluation
-    min_available_clients=10,  # Wait until all 10 clients are available
-)
+def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
+    # Multiply accuracy of each client by number of examples used
+    accuracies = [num_examples * m["accuracy"] for num_examples, m in metrics]
+    examples = [num_examples for num_examples, _ in metrics]
+
+    # Aggregate and return custom metric (weighted average)
+    return {"accuracy": sum(accuracies) / sum(examples)}
+
+
+# # Create FedAvg strategy
+# strategy = FedAvg(
+#     fraction_fit=1.0,  # Sample 100% of available clients for training
+#     fraction_evaluate=0.5,  # Sample 50% of available clients for evaluation
+#     min_fit_clients=10,  # Never sample less than 10 clients for training
+#     min_evaluate_clients=5,  # Never sample less than 5 clients for evaluation
+#     min_available_clients=10,  # Wait until all 10 clients are available
+# )
+
+# def server_fn(context: Context) -> ServerAppComponents:
+#     """Construct components that set the ServerApp behaviour.
+
+#     You can use the settings in `context.run_config` to parameterize the
+#     construction of all elements (e.g the strategy or the number of rounds)
+#     wrapped in the returned ServerAppComponents object.
+#     """
+
+#     # Configure the server for 5 rounds of training
+#     config = ServerConfig(num_rounds=5)
+
+#     return ServerAppComponents(strategy=strategy, config=config)
+
 
 def server_fn(context: Context) -> ServerAppComponents:
     """Construct components that set the ServerApp behaviour.
 
-    You can use the settings in `context.run_config` to parameterize the
+    You can use settings in `context.run_config` to parameterize the
     construction of all elements (e.g the strategy or the number of rounds)
     wrapped in the returned ServerAppComponents object.
     """
+
+    # Create FedAvg strategy
+    strategy = FedAvg(
+        fraction_fit=1.0,
+        fraction_evaluate=0.5,
+        min_fit_clients=10,
+        min_evaluate_clients=5,
+        min_available_clients=10,
+        evaluate_metrics_aggregation_fn=weighted_average,  # <-- pass the metric aggregation function
+    )
 
     # Configure the server for 5 rounds of training
     config = ServerConfig(num_rounds=5)
