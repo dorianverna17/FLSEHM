@@ -1,0 +1,4 @@
+flask==2.2.2
+flask-jwt-extended
+werkzeug==2.2.2
+requests==2.26.0
