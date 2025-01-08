@@ -14,7 +14,7 @@ class MarkovClient(fl.client.NumPyClient):
     def get_parameters(self):
         return [self.markov_matrix]
 
-    def fit(self, parameters, config):
+    def fit(self, parameters):
         """Receive global Markov matrix and update local matrix."""
         if parameters:
             self.markov_matrix = np.array(parameters[0])
@@ -24,7 +24,7 @@ class MarkovClient(fl.client.NumPyClient):
         self.markov_matrix /= self.markov_matrix.sum(axis=1, keepdims=True)
         return self.get_parameters(), len(self.markov_matrix), {}
 
-    def evaluate(self, parameters, config):
+    def evaluate(self, parameters):
         """Evaluate the current model (optional)."""
         return 0.0, len(self.markov_matrix), {}
 
