@@ -1,34 +1,26 @@
-import flwr as fl
+import warnings
+
 import numpy as np
+from flwr_datasets import FederatedDataset
+from flwr_datasets.partitioner import IidPartitioner
 
-class MarkovClient(fl.client.NumPyClient):
-    def __init__(self, num_states=3):
-        self.num_states = num_states
-        self.markov_matrix = self._initialize_markov_matrix()
+from flwr.client import ClientApp
+from flwr.common import Context, Message, MetricsRecord, RecordSet
 
-    def _initialize_markov_matrix(self):
-        """Generate a random Markov matrix."""
-        matrix = np.random.rand(self.num_states, self.num_states)
-        return matrix / matrix.sum(axis=1, keepdims=True)
+fds = None  # Cache FederatedDataset
 
-    def get_parameters(self):
-        return [self.markov_matrix]
+warnings.filterwarnings("ignore", category=UserWarning)
 
-    def fit(self, parameters):
-        """Receive global Markov matrix and update local matrix."""
-        if parameters:
-            self.markov_matrix = np.array(parameters[0])
-        # Simulate training (e.g., refine the matrix based on data)
-        self.markov_matrix += np.random.normal(scale=0.01, size=self.markov_matrix.shape)
-        self.markov_matrix = np.clip(self.markov_matrix, 0, 1)
-        self.markov_matrix /= self.markov_matrix.sum(axis=1, keepdims=True)
-        return self.get_parameters(), len(self.markov_matrix), {}
+# Flower ClientApp
+app = ClientApp()
 
-    def evaluate(self, parameters):
-        """Evaluate the current model (optional)."""
-        return 0.0, len(self.markov_matrix), {}
+@app.query()
+def query(msg: Message, context: Context):
+    metrics = {}
+    
+    metrics['client_log'] = 1
 
-# Start the client
-if __name__ == "__main__":
-    client = MarkovClient()
-    fl.client.start_numpy_client(server_address="localhost:8080", client=client)
+    # Reply to the server
+    reply_content = RecordSet(metrics_records={"query_results": MetricsRecord(metrics)})
+
+    return msg.create_reply(reply_content)
