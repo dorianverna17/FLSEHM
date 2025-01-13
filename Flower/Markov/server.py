@@ -1,59 +1,103 @@
-import flwr as fl
+# Add explanation comment
+
+import random
+import time
+
 import numpy as np
 
-num_clients = 10
+from logging import INFO
+from constants import BASESTATIONS
+from helpers import generate_random_markov_matrix
 
-transition_matrix = np.random.rand(num_clients, num_clients)
-transition_matrix = transition_matrix / transition_matrix.sum(axis=1, keepdims=True)
+from flwr.common import Context, MessageType, RecordSet, Message
+from flwr.common import ParametersRecord
+from flwr.common.logger import log
+from flwr.server import Driver, ServerApp
+from flwr.common import array_from_numpy
 
-state_distribution = np.ones(num_clients) / num_clients
+app = ServerApp()
 
-class MyStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, transition_matrix, state_distribution, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.transition_matrix = transition_matrix
-        self.state_distribution = state_distribution
+@app.main()
+def main(driver: Driver, context: Context) -> None:
+    # Configure the basic server settings:
+    #  - number of nodes
+    #  - training rounds
+    #  - fraction to be sampled
+    num_rounds = context.run_config["num-server-rounds"]
+    min_nodes = 2
+    fraction_sample = context.run_config["fraction-sample"]
 
-    def aggregate_fit(
-        self,
-        rnd: int,
-        results: list[tuple[fl.server.client_proxy.ClientProxy, fl.common.FitRes]],
-        failures: list[BaseException],
-    ) -> tuple[Optional[fl.common.Parameters], dictp[str, fl.common.Scalar]]:
-        if not results:
-            return None, {}
+    for server_round in range(num_rounds):
+        log(INFO, "")
+        log(INFO, "Starting round %s/%s", server_round + 1, num_rounds)
 
-        if not self.accept_failures and failures:
-            return None, {}
+        # Loop and wait until enough nodes are available.
+        all_node_ids = []
+        while len(all_node_ids) < min_nodes:
+            all_node_ids = driver.get_node_ids()
+            if len(all_node_ids) >= min_nodes:
+                # Sample nodes
+                num_to_sample = int(len(all_node_ids) * fraction_sample)
+                node_ids = random.sample(all_node_ids, num_to_sample)
+                break
+            log(INFO, "Waiting for nodes to connect...")
+            time.sleep(2)
+
+        log(INFO, "Sampled %s nodes (out of %s)", len(node_ids), len(all_node_ids))
+
+        # Create messages
+        recordset = RecordSet()
+        messages = []
+
+        # Create a random markov matrix to take care of coldstart problem
+        markov_matrix = array_from_numpy(np.array(generate_random_markov_matrix()))
+        parametes_records = ParametersRecord({'markov_matrix': markov_matrix})
+        recordset.parameters_records["markov_parameters"] = parametes_records
+
+        for node_id in node_ids:  # one message for each node
+            message = driver.create_message(
+                content=recordset,
+                message_type=MessageType.QUERY,  # target `query` method in ClientApp
+                dst_node_id=node_id,
+                group_id=str(server_round),
+            )
+            messages.append(message)
+
+        # Send messages and wait for all results
+        replies = driver.send_and_receive(messages)
+        log(INFO, "Received %s/%s results", len(replies), len(messages))
+
+        # Aggregate markov matrices
+        aggregated_matrix = aggregate_client_responses(replies)
+
+        # Display aggregated markov matrix
+        log(INFO, "Aggregated matrices: %s", aggregated_matrix)
+
+
+# This function aims to aggregate the responses received from clients
+# within the Federated framework
+def aggregate_client_responses(messages: Message):
+    log(INFO, "Aggregating partial responses from clients...")
+
+    # aggregated markov matrix
+    aggregated_matrix = [[0 for bs in range(BASESTATIONS)] for bs in range(BASESTATIONS)]
+
+    for rep in messages:
+        if rep.has_error():
+            continue
+        query_results = rep.content.parameters_records["markov_parameters"]
+
+        if 'markov_matrix' not in query_results:
+            continue
         
-        weights_results = [
-            (parameters_to_weights(fit_res.parameters), fit_res.num_examples)
-            for client, fit_res in results
-        ]
-        return weights_to_parameters(aggregate(weights_results)), {}
+        response_matrix = query_results['markov_matrix'].numpy()
 
+        log(INFO, "Markov matrix of client is: %s", response_matrix)
 
-    def configure_fit(self, rnd, parameters, client_manager):
-        selected_clients = np.random.choice(
-            client_manager.all().ids,
-            size=int(len(client_manager.all().ids * self.fraction_fit)),
-            replace=False,
-            p=self.state_distribution
-        )
+        # sum up markov matrices
+        aggregated_matrix = np.add(aggregated_matrix, response_matrix)
 
-        self.state_distribution = self.state_distribution @ self.transition_matrix
+    # perform mean of the summed up aggregated matrix
+    aggregated_matrix = np.divide(aggregated_matrix, len(messages))
 
-        return super().configure_fit(rnd, parameters, client_manager)
-
-
-strategy = MyStrategy(
-    fraction_fit=0.1,
-    transition_matrix=transition_matrix,
-    state_distribution=state_distribution
-)
-
-fl.server.start_server(
-    server_address="0.0.0.0:8080",
-    config=fl.server.ServerConfig(num_rounds=10),
-    strategy=strategy
-)
+    return aggregated_matrix
