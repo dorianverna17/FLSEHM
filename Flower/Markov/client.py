@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import constants as ct
 
 from constants import BASESTATIONS
 from helpers import generate_random_markov_matrix
@@ -12,13 +13,17 @@ from flwr.common import array_from_numpy
 from flwr.common.logger import log
 from flwr.client import ClientApp
 from flwr.common import Context, Message, ParametersRecord, RecordSet
+from flwr.client.mod import LocalDpMod
 
 fds = None  # Cache FederatedDataset
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# Flower ClientApp
-app = ClientApp()
+# Add Local Differential Privacy Configuration
+local_dp_obj = LocalDpMod(ct.clipping_norm, ct.sensitivity, ct.epsilon, ct.delta)
+
+# Create Client App
+app = ClientApp(mods=[local_dp_obj])
 
 @app.query()
 def query(msg: Message, context: Context):
