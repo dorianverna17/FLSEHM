@@ -3,7 +3,7 @@ import itertools
 import json
 import os
 import warnings
-warnings.filterwarnings('ignore')
+import hashlib
 
 import geopandas as gpd
 from geopandas import GeoDataFrame
@@ -20,6 +20,7 @@ import seaborn
 from shapely.geometry import Point, shape
 import shapely.wkt
 
+warnings.filterwarnings('ignore')
 
 DATA_PATH = "../Datasets/"
 
@@ -40,24 +41,25 @@ print(df_sample_trail_gt.columns)
 
 # Function used to visualize traffic obtained in the ground truth
 def visualize_trafic(df, center, zoom=9):
-    fig = px.scatter_mapbox(df,
-                            
+    fig = px.scatter_mapbox(df,  
                             # Here, plotly gets, (x,y) coordinates
                             lat="latDeg",
                             lon="lngDeg",
-                            
                             #Here, plotly detects color of series
                             color="phoneName",
                             labels="phoneName",
-                            
                             zoom=zoom,
                             center=center,
-                            height=600,
-                            width=800)
+                            height=900,
+                            width=1200)
     fig.update_layout(mapbox_style='open-street-map')
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
     fig.update_layout(title_text="GPS trafic")
     fig.show()
+
+# Function used to perform hashing on the PII data
+def hash_data(data):
+    return hashlib.sha256(data.encode()).hexdigest()
 
 ##########################################################################
 ## Sample Code just to test if we can display data with Open Street Map ##
@@ -100,5 +102,18 @@ for collectionName, gdfs_each_collectionName in zip(collectionNames, gdfs):
         # Tracks they have same collectionName is also same
         break
 
+##########################################################
+##   Take care of the privacy concerns in the dataset   ##
+## Specifically work on hashing the name of every phone ##
+##            and reconstruct the dataset               ##
+##########################################################
+print(all_tracks)
+all_tracks.to_csv('custom_gnss.csv', index=False)
+
+# hash the phone name
+all_tracks['phoneName'] = all_tracks['phoneName'].apply(hash_data)
+all_tracks.to_csv('custom_gnss.csv', index=False)
+
+# Print openstreet data map
 center={"lat":37.423576, "lon":-122.094132}
 visualize_trafic(all_tracks, center=center)
