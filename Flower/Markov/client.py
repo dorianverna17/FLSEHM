@@ -37,7 +37,7 @@ def query(msg: Message, context: Context):
     server_params = msg.content.parameters_records["markov_parameters"]
     server_matrix = server_params['markov_matrix'].numpy()
 
-    logging.info("Client received transition matrix %s", server_matrix)
+    logging.info("Client %s received transition matrix: %s", app, server_matrix)
 
     # generate new matrix based on observations
     new_matrix = generate_random_markov_matrix()
@@ -46,8 +46,10 @@ def query(msg: Message, context: Context):
     aggregated_matrix = np.add(new_matrix, server_matrix)
     aggregated_matrix = np.divide(aggregated_matrix, BASESTATIONS)
 
+    logging.info("Client %s aggregated matrix not noisy: %s", app, aggregated_matrix)
+
     # Apply local differential privacy
-    noised_aggregated_matrix = dp.add_noise("local", aggregated_matrix)
+    noised_aggregated_matrix = dp.add_noise("local", "gaussian", aggregated_matrix)
 
     logging.info("Client %s built aggregated matrix: %s", app, noised_aggregated_matrix)
 

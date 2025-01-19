@@ -31,7 +31,7 @@ def main(driver: Driver, context: Context) -> None:
     #  - training rounds
     #  - fraction to be sampled
     num_rounds = context.run_config["num-server-rounds"]
-    min_nodes = 1
+    min_nodes = 2
     fraction_sample = context.run_config["fraction-sample"]
 
     for server_round in range(num_rounds):
