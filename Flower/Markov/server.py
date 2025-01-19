@@ -2,18 +2,25 @@
 
 import random
 import time
-
+import logging
 import numpy as np
 
-from logging import INFO
 from constants import BASESTATIONS
 from helpers import generate_random_markov_matrix
+from logging import INFO
 
 from flwr.common import Context, MessageType, RecordSet, Message
 from flwr.common import ParametersRecord
 from flwr.common.logger import log
 from flwr.server import Driver, ServerApp
 from flwr.common import array_from_numpy
+
+# Configure logging
+logging.basicConfig(
+    filename='output/app_server.log',  # Specify the file name
+    level=logging.INFO,  # Set the logging level
+    format='%(asctime)s - %(levelname)s - %(message)s'  # Define the log format
+)
 
 app = ServerApp()
 
@@ -24,7 +31,7 @@ def main(driver: Driver, context: Context) -> None:
     #  - training rounds
     #  - fraction to be sampled
     num_rounds = context.run_config["num-server-rounds"]
-    min_nodes = 2
+    min_nodes = 1
     fraction_sample = context.run_config["fraction-sample"]
 
     for server_round in range(num_rounds):
@@ -65,13 +72,13 @@ def main(driver: Driver, context: Context) -> None:
 
         # Send messages and wait for all results
         replies = driver.send_and_receive(messages)
-        log(INFO, "Received %s/%s results", len(replies), len(messages))
+        logging.info("Received %s/%s results", len(replies), len(messages))
 
         # Aggregate markov matrices
         aggregated_matrix = aggregate_client_responses(replies)
 
         # Display aggregated markov matrix
-        log(INFO, "Aggregated matrices: %s", aggregated_matrix)
+        logging.info("Aggregated matrices: %s", aggregated_matrix)
 
 
 # This function aims to aggregate the responses received from clients
@@ -92,12 +99,14 @@ def aggregate_client_responses(messages: Message):
         
         response_matrix = query_results['markov_matrix'].numpy()
 
-        log(INFO, "Markov matrix of client is: %s", response_matrix)
+        logging.info("Client built aggregated matrix: %s", response_matrix)
 
         # sum up markov matrices
         aggregated_matrix = np.add(aggregated_matrix, response_matrix)
 
     # perform mean of the summed up aggregated matrix
     aggregated_matrix = np.divide(aggregated_matrix, len(messages))
+
+    logging.info("Aggregated Markov matrix after round: %s", response_matrix)
 
     return aggregated_matrix
