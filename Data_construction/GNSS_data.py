@@ -1,24 +1,15 @@
 import glob
-import itertools
-import json
-import os
 import warnings
 import hashlib
 
-import geopandas as gpd
 from geopandas import GeoDataFrame
-import geoplot as gplt
-from IPython.display import Video
-from matplotlib import animation
+import math
 import matplotlib.pyplot as plt
 import numpy as np 
 import pandas as pd
 import plotly.express as px
-import pynmea2
-import requests
-import seaborn
-from shapely.geometry import Point, shape
-import shapely.wkt
+from shapely.geometry import Point
+from sklearn.cluster import KMeans
 
 warnings.filterwarnings('ignore')
 
@@ -40,14 +31,14 @@ print("A brief look at the columns of ground truth data:")
 print(df_sample_trail_gt.columns)
 
 # Function used to visualize traffic obtained in the ground truth
-def visualize_trafic(df, center, zoom=9):
+def visualize_trafic(df, center, label="phoneName", zoom=9):
     fig = px.scatter_mapbox(df,  
                             # Here, plotly gets, (x,y) coordinates
                             lat="latDeg",
                             lon="lngDeg",
                             #Here, plotly detects color of series
-                            color="phoneName",
-                            labels="phoneName",
+                            color=label,
+                            labels=label,
                             zoom=zoom,
                             center=center,
                             height=900,
@@ -97,10 +88,9 @@ for collectionName in collectionNames:
 all_tracks = pd.DataFrame()
 
 for collectionName, gdfs_each_collectionName in zip(collectionNames, gdfs):   
+    print(collectionName)
     for i, gdf in enumerate(gdfs_each_collectionName):
         all_tracks = pd.concat([all_tracks, gdf])
-        # Tracks they have same collectionName is also same
-        break
 
 ##########################################################
 ##   Take care of the privacy concerns in the dataset   ##
@@ -110,10 +100,144 @@ for collectionName, gdfs_each_collectionName in zip(collectionNames, gdfs):
 print(all_tracks)
 all_tracks.to_csv('custom_gnss.csv', index=False)
 
+# create new column (collectionName and phoneName):
+all_tracks['measurementID'] = all_tracks['collectionName'] + all_tracks["phoneName"]
+
 # hash the phone name
 all_tracks['phoneName'] = all_tracks['phoneName'].apply(hash_data)
 all_tracks.to_csv('custom_gnss.csv', index=False)
 
 # Print openstreet data map
 center={"lat":37.423576, "lon":-122.094132}
-visualize_trafic(all_tracks, center=center)
+visualize_trafic(all_tracks, center=center, label="measurementID")
+
+
+######################################
+# Determine some of the basestations #
+#    Perform a K-means clustering    #
+######################################
+data_x = [p.x for p in all_tracks['geometry']]
+data_y = [p.y for p in all_tracks['geometry']]
+data = list(zip(data_x, data_y))
+
+inertias = []
+
+for i in range(1,11):
+    kmeans = KMeans(n_clusters=i)
+    kmeans.fit(data)
+    inertias.append(kmeans.inertia_)
+
+figure3 = plt.figure(3)
+plt.plot(range(1,11), inertias, marker='o')
+plt.title('Elbow method')
+plt.xlabel('Number of clusters')
+plt.ylabel('Inertia')
+figure3.show()
+
+##
+## We've tried figuring out how many basestations we can
+## divide our dataset in.
+## By using the elbow method, we found out that we can
+## have 2 basestations (the above graph tends to go
+## horizontal when the number of clusters is 2).
+##
+
+kmeans = KMeans(n_clusters=2)
+kmeans.fit(data)
+
+# Let's also display the centroids
+centroids  = kmeans.cluster_centers_
+print(centroids)
+
+figure4 = plt.figure(4)
+x_centr = data_x + [c[0] for c in centroids]
+y_centr = data_y + [c[1] for c in centroids]
+labels = kmeans.labels_
+labels = np.append(labels, [[10, 10]])
+plt.scatter(x_centr, y_centr, c=labels)
+figure4.show()
+
+###################################################
+# Compute how many devices changed their position #
+# from their start of the movement up to the end  #
+###################################################
+
+def compute_distance_to_centroids(p):
+    return [math.dist([p.x, p.y], c) for c in centroids]
+
+# Get the starting and end point for each device
+# and day this means that we should get the point
+# for each first row in every ground_truth file.
+
+# Hash the collection name along with the phone
+# name so that we distinguish between measurements.
+hashed_positions = []
+for collectionName in collectionNames:
+    csv_paths = glob.glob(DATA_PATH + f"{collectionName}/*/ground_truth.csv")
+    for csv_path in csv_paths:
+        df_gt = pd.read_csv(csv_path)
+
+        hashed_id = hash_data(df_gt['collectionName'][0] +
+                              '-' + df_gt['phoneName'][0])
+        start_lat = df_gt['latDeg'][0]
+        start_lon = df_gt['lngDeg'][0]
+
+        end_lat = df_gt['latDeg'][len(df_gt) - 1]
+        end_lon = df_gt['lngDeg'][len(df_gt) - 1]
+
+        hashed_positions.append([hashed_id,
+                                 Point(start_lon, start_lat), Point(end_lon, end_lat)])
+
+# Now compute the length to the centroids for each
+# of these hashed positions and determine whether
+# the point has moved.
+p_truth_movement = []
+for h in hashed_positions:
+    start = -1
+    end = -1
+
+    distances = compute_distance_to_centroids(h[1])
+    min_d = min(distances)
+    for i in range(len(distances)):
+        if min_d == distances[i]:
+            start = i
+            break
+
+    distances = compute_distance_to_centroids(h[2])
+    min_d = min(distances)
+    for i in range(len(distances)):
+        if min_d == distances[i]:
+            end = i
+            break
+
+    p_truth_movement.append([h[0], start, end])
+
+# create a truth matrix with the data from the truth movement
+#      [started_BS0_ended_BS0  started_BS0_ended_BS1]
+#      [started_BS1_ended_BS0  started_BS1_ended_BS1]
+truth_matrix = [[0, 0], [0, 0]]
+for entry in p_truth_movement:
+    if entry[1] == 0 and entry[2] == 0:
+        truth_matrix[0][0] += 1
+    elif entry[1] == 0 and entry[2] == 1:
+        truth_matrix[0][1] += 1
+    elif entry[1] == 1 and entry[2] == 0:
+        truth_matrix[1][0] += 1
+    elif entry[1] == 1 and entry[1] == 1:
+        truth_matrix[1][1] += 1
+
+print(truth_matrix)
+
+# now compute the Markov transition matrix to serve as
+# cold start matrix
+stochastic_matrix = [[0, 0], [0, 0]]
+for i in range(len(truth_matrix)):
+    sum_row = sum(truth_matrix[i])
+
+    for j in range(len(truth_matrix)):
+        stochastic_matrix[i][j] = truth_matrix[i][j] / sum_row
+
+print(stochastic_matrix)
+
+# this line ensures that the plots are still displayed
+input()
