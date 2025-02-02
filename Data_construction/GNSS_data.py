@@ -1,3 +1,9 @@
+###################################################
+# This file aims to analyze and perform modelling #
+#  of the GNSS ground truth dataset in order to   #
+#  obtain a cold start Markov transition matrix   #
+###################################################
+
 import glob
 import warnings
 import hashlib
@@ -238,6 +244,19 @@ for i in range(len(truth_matrix)):
         stochastic_matrix[i][j] = truth_matrix[i][j] / sum_row
 
 print(stochastic_matrix)
+
+#################################################
+# Let's print all the useful data to a log file #
+#################################################
+# print data used for building simulation data
+f = open("simulation_starting_data.log", 'w')
+for h in hashed_positions:
+    print(str(h), file=f)
+f.close()
+# print cold start data
+g = open("cold_start_matrix.log", 'w')
+print(str(stochastic_matrix), file=g)
+g.close()
 
 # this line ensures that the plots are still displayed
 input()
