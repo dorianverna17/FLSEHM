@@ -85,7 +85,7 @@ for collectionName in collectionNames:
     csv_paths = glob.glob(DATA_PATH + f"{collectionName}/*/ground_truth.csv")
     for csv_path in csv_paths:
         df_gt = pd.read_csv(csv_path)
-        df_gt["geometry"] = [Point(lngDeg, latDeg) for lngDeg, latDeg in zip(df_gt["lngDeg"], df_gt["latDeg"])]
+        df_gt["geometry"] = [Point(latDeg, lngDeg) for latDeg, lngDeg in zip(df_gt["latDeg"], df_gt["lngDeg"])]
         gdfs_each_collectionName.append(GeoDataFrame(df_gt))
     gdfs.append(gdfs_each_collectionName)
 
@@ -156,8 +156,8 @@ centroids  = kmeans.cluster_centers_
 print(centroids)
 
 figure4 = plt.figure(4)
-x_centr = data_x + [c[0] for c in centroids]
-y_centr = data_y + [c[1] for c in centroids]
+y_centr = data_x + [c[0] for c in centroids]
+x_centr = data_y + [c[1] for c in centroids]
 labels = kmeans.labels_
 labels = np.append(labels, [[10, 10]])
 plt.scatter(x_centr, y_centr, c=labels)
@@ -192,7 +192,7 @@ for collectionName in collectionNames:
         end_lon = df_gt['lngDeg'][len(df_gt) - 1]
 
         hashed_positions.append([hashed_id,
-                                 Point(start_lon, start_lat), Point(end_lon, end_lat)])
+                                 Point(start_lat, start_lon), Point(end_lat, end_lon)])
 
 # Now compute the length to the centroids for each
 # of these hashed positions and determine whether
