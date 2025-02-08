@@ -1,6 +1,7 @@
 # Add explanation comment
 
 import random
+import re
 import time
 import logging
 import numpy as np
@@ -23,6 +24,30 @@ logging.basicConfig(
 )
 
 app = ServerApp()
+
+
+# Define series of constants retained in the server
+cold_start_matrix = None # initial stochastic matrix that will be aggregated afterwards
+cold_start_matrix_file_location = "/Users/dorianverna/Documents/Thesis/Data_construction/cold_start_matrix.log"
+
+def initialize():
+    """
+    This function aims to initialize the server reading the cold start
+    matrix taken from the GNSS measurements
+    """
+    matrix_file = open(cold_start_matrix_file_location, "r")
+    matrix = matrix_file.readline()
+
+    # parse str matrix into list of lists
+    list_basestations = re.split(r'\[|\]', matrix)
+    list_basestations = list(filter(lambda x: len(x) != 0 and x[0] >= '0' and x[0] <= '9', list_basestations))
+    cold_start_matrix = []
+    for probability_row in list_basestations:
+        probabilities = re.split(r', ', probability_row)
+        cold_start_matrix.append(list(map(lambda x: float(x), probabilities)))
+
+    print(cold_start_matrix)
+
 
 @app.main()
 def main(driver: Driver, context: Context) -> None:
@@ -110,3 +135,7 @@ def aggregate_client_responses(messages: Message):
     logging.info("Aggregated Markov matrix after round: %s", response_matrix)
 
     return aggregated_matrix
+
+
+if __name__=="__main__":
+    initialize()
