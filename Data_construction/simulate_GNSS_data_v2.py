@@ -4,6 +4,7 @@
 # analyzing the log files created by GNSS_data.py #
 ###################################################
 
+from shapely.geometry import Point
 import random
 
 # As opposed to v1, we now just generate a starting point
@@ -41,5 +42,43 @@ def generate_random_point():
     return [lat, lon]
 
 
-print(generate_random_point())
+# Step 1. Read file data in a list
+# TODO - This code is duplicated - consider adding a helper package
+f = open("simulation_starting_data.log", "rt")
+data = []
+line = f.readline()
+while line:
+    hash_id = line[line.find('\'') + 1:line.find('\'', 3)]
+    
+    sp_index = line.find('POINT')
+    starting_point = line[sp_index + 6:line.find('>', sp_index)]
+    starting_point_x = starting_point[1:starting_point.find(' ')]
+    starting_point_y = starting_point[starting_point.find(' '):len(starting_point) - 1]
 
+    sp_index = line.find('POINT', sp_index + 1)
+    ending_point = line[sp_index + 6:line.find('>', sp_index)]
+    ending_point_x = ending_point[1:ending_point.find(' ')]
+    ending_point_y = ending_point[ending_point.find(' '):len(ending_point) - 1]
+    
+    data.append([hash_id, Point(starting_point_x, starting_point_y),
+                 Point(ending_point_x, ending_point_y)])
+
+    line = f.readline()
+
+f.close()
+
+
+def generate_next_points():
+    """
+    This function generates the next positions of all the devices
+    that were part of the GNSS datasets.
+    
+    Ret:
+		A list of ending points for the devices from the GNSS dataset
+    """
+    ending_points_list = []
+    for d in data:
+        next_point = generate_random_point()
+        ending_points_list.append(Point(next_point[0], next_point[1]))
+    return ending_points_list
+	
