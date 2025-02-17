@@ -70,7 +70,14 @@ f.close()
 
 def get_new_direction(d):
     """
-    TODO add commentary
+    This function generates a new direction for the trajectory of a point
+    based on its previous movement direction
+
+    Args:
+        d - previous direction of the device
+
+    Ret:
+        The new direction of the trajectory
     """
     random_dir = random.randint(0, 3)
 

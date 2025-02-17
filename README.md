@@ -2,6 +2,37 @@
 Thesis Project - Federated Learning in Scenarios of External Human Mobility 
 
 # Contents
+
+## Dataset Construction
+
+An important part of the implementation is represented by the construction of the set of data used in
+federated learning.
+
+We used GNSS data, see Datasets/ and Documentation/
+
+To run the dataset construction and cold start Markov matrix computation:
+```
+python Dataset_construction/GNSS_data.py
+```
+
+The above Python script will also save the cold-start stochastic Markov matrix in the cold_start_matrix.log file.
+The script also builds a log file with the starting and ending position of each point in the GNSS dataset, the file is simulation_starting_data.log.
+
+To run simulation data generation v1:
+```
+python Dataset_construction/simulate_GNSS_data_v1.py
+```
+
+To run simulation data generation v2:
+```
+python Dataset_construction/simulate_GNSS_data_v2.py
+```
+
+To run simulation data generation v3:
+```
+python Dataset_construction/simulate_GNSS_data_v3.py
+```
+
 ## Proof of Concept
 
 The Proof of Concept solution contains a basic Docker configuration followed by a client app and a server app.
