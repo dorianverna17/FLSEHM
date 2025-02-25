@@ -18,6 +18,13 @@ from flwr.client.mod import LocalDpMod
 
 # TODO - associate this proxy with a position on the map
 # In the future, also consider this point to be mobile
+# One idea would be to make use of the function generate_random_point
+# as we already have the allowlists put there
+# we should retain the positions of these proxies and make sure that
+# their positions are as diversified as they could
+# Consider adding logic in the server to designate the proxies
+# (the server may be the right entity to generate these locations
+# for the proxies at first)
 
 # Configure logging
 logging.basicConfig(
