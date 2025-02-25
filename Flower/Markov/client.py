@@ -16,6 +16,8 @@ from flwr.client import ClientApp
 from flwr.common import Context, Message, ParametersRecord, RecordSet
 from flwr.client.mod import LocalDpMod
 
+# TODO - associate this proxy with a position on the map
+# In the future, also consider this point to be mobile
 
 # Configure logging
 logging.basicConfig(
@@ -40,6 +42,9 @@ def query(msg: Message, context: Context):
     logging.info("Client %s received transition matrix: %s", app, server_matrix)
 
     # generate new matrix based on observations
+    # TODO - instead of generating a random matrix, iterate over the current counter (counter_processed + 1)
+    # entry of the generated_points list (import the start_data_generation package here).
+    # See which devices from the list are the closest to it. Only process these entries then.
     new_matrix = generate_random_markov_matrix()
 
     # aggregate received matrix with new one
