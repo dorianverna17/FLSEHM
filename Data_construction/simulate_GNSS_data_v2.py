@@ -44,7 +44,7 @@ def generate_random_point():
 
 # Step 1. Read file data in a list
 # TODO - This code is duplicated - consider adding a helper package
-f = open("simulation_starting_data.log", "rt")
+f = open("Data_construction/simulation_starting_data.log", "rt")
 data = []
 line = f.readline()
 while line:

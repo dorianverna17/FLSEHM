@@ -64,6 +64,11 @@ cd Flower/Markov/dp_validation
 python validate.py
 ```
 
+Alternatively, in order to make use of the simulated data, based on the cold-start problem
+```
+Flower/Markov/start_simulation.sh
+```
+
 # Running Conda
 
 Prerequisited: it is necessary to use the dependencies installed with Conda:

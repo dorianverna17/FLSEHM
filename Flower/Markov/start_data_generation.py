@@ -6,9 +6,15 @@
 import sys
 import time
 
-sys.path.append('../Data_construction/')
+import importlib.util
 
-from Data_construction.simulate_GNSS_data_v2 import generate_next_points
+def module_from_file(module_name, file_path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+sim = module_from_file("bar", "Data_construction/simulate_GNSS_data_v2.py")
 
 generated_points = []
 count = 0
@@ -18,5 +24,9 @@ while True:
 	time.sleep(10)
 
 	# generate points
-	generated_points.append(generate_next_points())
+	generated_points.append(sim.generate_next_points())
 	count += 1
+
+	# this is a timeout block (this script shouldn't run forever in our simulation)
+	if count == 10:
+		break

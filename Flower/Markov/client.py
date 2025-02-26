@@ -28,7 +28,7 @@ from flwr.client.mod import LocalDpMod
 
 # Configure logging
 logging.basicConfig(
-    filename='output/app_client.log',  # Specify the file name
+    filename='Flower/Markov/output/app_client.log',  # Specify the file name
     level=logging.INFO,  # Set the logging level
     format='%(asctime)s - %(levelname)s - %(message)s'  # Define the log format
 )
@@ -42,34 +42,40 @@ app = ClientApp()
 
 @app.query()
 def query(msg: Message, context: Context):
-    # get server transition matrix
-    server_params = msg.content.parameters_records["markov_parameters"]
-    server_matrix = server_params['markov_matrix'].numpy()
+	# handle received messages
+	record = msg.content.parameters_records
+	if "proxy_positions" in record:
+		print(record)
+		return msg.create_reply(RecordSet())
+	else:
+		# get server transition matrix
+		server_params = msg.content.parameters_records["markov_parameters"]
+		server_matrix = server_params['markov_matrix'].numpy()
 
-    logging.info("Client %s received transition matrix: %s", app, server_matrix)
+		logging.info("Client %s received transition matrix: %s", app, server_matrix)
 
-    # generate new matrix based on observations
-    # TODO - instead of generating a random matrix, iterate over the current counter (counter_processed + 1)
-    # entry of the generated_points list (import the start_data_generation package here).
-    # See which devices from the list are the closest to it. Only process these entries then.
-    new_matrix = generate_random_markov_matrix()
+		# generate new matrix based on observations
+		# TODO - instead of generating a random matrix, iterate over the current counter (counter_processed + 1)
+		# entry of the generated_points list (import the start_data_generation package here).
+		# See which devices from the list are the closest to it. Only process these entries then.
+		new_matrix = generate_random_markov_matrix()
 
-    # aggregate received matrix with new one
-    aggregated_matrix = np.add(new_matrix, server_matrix)
-    aggregated_matrix = np.divide(aggregated_matrix, BASESTATIONS)
+		# aggregate received matrix with new one
+		aggregated_matrix = np.add(new_matrix, server_matrix)
+		aggregated_matrix = np.divide(aggregated_matrix, BASESTATIONS)
 
-    logging.info("Client %s aggregated matrix not noisy: %s", app, aggregated_matrix)
+		logging.info("Client %s aggregated matrix not noisy: %s", app, aggregated_matrix)
 
-    # Apply local differential privacy
-    noised_aggregated_matrix = dp.add_noise("local", "gaussian", aggregated_matrix)
+		# Apply local differential privacy
+		noised_aggregated_matrix = dp.add_noise("local", "gaussian", aggregated_matrix)
 
-    logging.info("Client %s built aggregated matrix: %s", app, noised_aggregated_matrix)
+		logging.info("Client %s built aggregated matrix: %s", app, noised_aggregated_matrix)
 
-    # create response
-    recordset = RecordSet()
-    markov_matrix = array_from_numpy(np.array(noised_aggregated_matrix))
-    parametes_records = ParametersRecord({'markov_matrix': markov_matrix})
-    recordset.parameters_records["markov_parameters"] = parametes_records
+		# create response
+		recordset = RecordSet()
+		markov_matrix = array_from_numpy(np.array(noised_aggregated_matrix))
+		parametes_records = ParametersRecord({'markov_matrix': markov_matrix})
+		recordset.parameters_records["markov_parameters"] = parametes_records
 
-    # Reply to the server
-    return msg.create_reply(recordset)
+		# Reply to the server
+		return msg.create_reply(recordset)

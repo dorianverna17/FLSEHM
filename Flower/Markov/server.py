@@ -5,6 +5,7 @@ import re
 import time
 import logging
 import numpy as np
+import importlib.util
 
 from constants import BASESTATIONS
 from helpers import generate_random_markov_matrix
@@ -16,9 +17,18 @@ from flwr.common.logger import log
 from flwr.server import Driver, ServerApp
 from flwr.common import array_from_numpy
 
+# duplicated code, make sure to delete it at some point
+def module_from_file(module_name, file_path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+sim = module_from_file("bar", "Data_construction/simulate_GNSS_data_v2.py")
+
 # Configure logging
 logging.basicConfig(
-    filename='output/app_server.log',  # Specify the file name
+    filename='Flower/Markov/output/app_server.log',  # Specify the file name
     level=logging.INFO,  # Set the logging level
     format='%(asctime)s - %(levelname)s - %(message)s'  # Define the log format
 )
@@ -28,7 +38,7 @@ app = ServerApp()
 
 # Define series of constants retained in the server
 cold_start_matrix = None # initial stochastic matrix that will be aggregated afterwards
-cold_start_matrix_file_location = "/Users/dorianverna/Documents/Thesis/Data_construction/cold_start_matrix.log"
+cold_start_matrix_file_location = "Data_construction/cold_start_matrix.log"
 
 def initialize():
     """
@@ -76,6 +86,9 @@ def main(driver: Driver, context: Context) -> None:
             time.sleep(2)
 
         log(INFO, "Sampled %s nodes (out of %s)", len(node_ids), len(all_node_ids))
+
+		# Initialize the positions of the proxies
+        designate_proxy_instances(driver, node_ids, server_round)
 
         # Create messages
         recordset = RecordSet()
@@ -135,6 +148,33 @@ def aggregate_client_responses(messages: Message):
     logging.info("Aggregated Markov matrix after round: %s", response_matrix)
 
     return aggregated_matrix
+
+
+# This function aims to pick up the devices that would serve as proxies.
+# It should normally iterate over the list of devices' hash and pick some
+# proxies out of those such as to contain a diversified list of positions.
+def designate_proxy_instances(driver: Driver, node_ids: list[int], server_round: int):
+    # Iterate over the proxies, generate a position for each one of them.
+    # Normally, proxies would have to be devices from the dataset, but we
+    # are not considering this option for now.
+	recordset = RecordSet()
+	messages = []
+	
+	parametes_records = ParametersRecord({'proxy_position':
+                                       array_from_numpy(np.array(sim.generate_random_point()))})
+	recordset.parameters_records["proxy_positions"] = parametes_records
+	for node_id in node_ids:
+		message = driver.create_message(
+			content=recordset,
+			message_type=MessageType.QUERY,  # target `query` method in ClientApp
+		    dst_node_id=node_id,
+			group_id=str(server_round),
+		)
+	messages.append(message)
+    
+	# Send messages and wait for all results
+	replies = driver.send_and_receive(messages)
+	logging.info("Received %s/%s results", len(replies), len(messages))
 
 
 if __name__=="__main__":
