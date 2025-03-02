@@ -5,7 +5,7 @@
 
 import sys
 import time
-
+import os
 import importlib.util
 
 def module_from_file(module_name, file_path):
@@ -16,17 +16,27 @@ def module_from_file(module_name, file_path):
 
 sim = module_from_file("bar", "Data_construction/simulate_GNSS_data_v2.py")
 
-generated_points = []
 count = 0
-counter_processed = 0
+
+# Create output directory
+output_dir = "Flower/Markov/generated_points"
+os.makedirs(output_dir, exist_ok=True)
 
 while True:
-	time.sleep(10)
+    time.sleep(10)
 
-	# generate points
-	generated_points.append(sim.generate_next_points())
-	count += 1
+    # Generate points
+    new_points = sim.generate_next_points()
 
-	# this is a timeout block (this script shouldn't run forever in our simulation)
-	if count == 10:
-		break
+	# TODO - we also have to retain the last point where the device was
+    # Write to an intermediate file
+    filename = os.path.join(output_dir, f"generated_points_{count}.txt")
+    with open(filename, "w") as file:
+        for point in new_points:
+            file.write(f"{point}\n")
+
+    count += 1
+
+    # Timeout block - exit after 10 iterations
+    if count == 10:
+        break

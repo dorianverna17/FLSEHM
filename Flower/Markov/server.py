@@ -65,58 +65,60 @@ def main(driver: Driver, context: Context) -> None:
     #  - number of nodes
     #  - training rounds
     #  - fraction to be sampled
-    num_rounds = context.run_config["num-server-rounds"]
-    min_nodes = 2
-    fraction_sample = context.run_config["fraction-sample"]
+	num_rounds = context.run_config["num-server-rounds"]
+	min_nodes = 2
+	fraction_sample = context.run_config["fraction-sample"]
 
-    for server_round in range(num_rounds):
-        log(INFO, "")
-        log(INFO, "Starting round %s/%s", server_round + 1, num_rounds)
+	for server_round in range(num_rounds):
+		log(INFO, "")
+		log(INFO, "Starting round %s/%s", server_round + 1, num_rounds)
 
         # Loop and wait until enough nodes are available.
-        all_node_ids = []
-        while len(all_node_ids) < min_nodes:
-            all_node_ids = driver.get_node_ids()
-            if len(all_node_ids) >= min_nodes:
+		all_node_ids = []
+		while len(all_node_ids) < min_nodes:
+			all_node_ids = driver.get_node_ids()
+			if len(all_node_ids) >= min_nodes:
                 # Sample nodes
-                num_to_sample = int(len(all_node_ids) * fraction_sample)
-                node_ids = random.sample(all_node_ids, num_to_sample)
-                break
-            log(INFO, "Waiting for nodes to connect...")
-            time.sleep(2)
+				num_to_sample = int(len(all_node_ids) * fraction_sample)
+				node_ids = random.sample(all_node_ids, num_to_sample)
+				break
+			log(INFO, "Waiting for nodes to connect...")
+			time.sleep(2)
 
-        log(INFO, "Sampled %s nodes (out of %s)", len(node_ids), len(all_node_ids))
+		log(INFO, "Sampled %s nodes (out of %s)", len(node_ids), len(all_node_ids))
 
-		# Initialize the positions of the proxies
-        designate_proxy_instances(driver, node_ids, server_round)
+		# Initialize the positions of the proxies - only on round 0
+		# consider designatign new proxies on each round
+		if server_round == 0:
+			designate_proxy_instances(driver, node_ids, server_round)
 
-        # Create messages
-        recordset = RecordSet()
-        messages = []
+		# Create messages
+		recordset = RecordSet()
+		messages = []
 
         # Create a random markov matrix to take care of coldstart problem
-        markov_matrix = array_from_numpy(np.array(generate_random_markov_matrix()))
-        parametes_records = ParametersRecord({'markov_matrix': markov_matrix})
-        recordset.parameters_records["markov_parameters"] = parametes_records
+		markov_matrix = array_from_numpy(np.array(generate_random_markov_matrix()))
+		parametes_records = ParametersRecord({'markov_matrix': markov_matrix})
+		recordset.parameters_records["markov_parameters"] = parametes_records
 
-        for node_id in node_ids:  # one message for each node
-            message = driver.create_message(
+		for node_id in node_ids:  # one message for each node
+			message = driver.create_message(
                 content=recordset,
                 message_type=MessageType.QUERY,  # target `query` method in ClientApp
-                dst_node_id=node_id,
-                group_id=str(server_round),
-            )
-            messages.append(message)
+				dst_node_id=node_id,
+				group_id=str(server_round),
+			)
+		messages.append(message)
 
         # Send messages and wait for all results
-        replies = driver.send_and_receive(messages)
-        logging.info("Received %s/%s results", len(replies), len(messages))
-
+		replies = driver.send_and_receive(messages)
+		logging.info("Received %s/%s results", len(replies), len(messages))
+        
         # Aggregate markov matrices
-        aggregated_matrix = aggregate_client_responses(replies)
+		aggregated_matrix = aggregate_client_responses(replies)
 
         # Display aggregated markov matrix
-        logging.info("Aggregated matrices: %s", aggregated_matrix)
+		logging.info("Aggregated matrices: %s", aggregated_matrix)
 
 
 # This function aims to aggregate the responses received from clients
