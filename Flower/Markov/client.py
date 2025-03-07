@@ -7,7 +7,7 @@ import constants as ct
 import differential_privacy as dp
 
 from constants import BASESTATIONS
-from helpers import parse_point
+from helpers import parse_point, parse_generated_points, get_basestation
 from logging import INFO
 from start_data_generation import output_dir
 from shapely.geometry import Point
@@ -26,7 +26,7 @@ proxy_position = None
 
 # Configure logging
 logging.basicConfig(
-    filename='Flower/Markov/output/app_client.log',  # Specify the file name
+    filename = f'Flower/Markov/output/app_client_{os.getpid()}.log',
     level=logging.INFO,  # Set the logging level
     format='%(asctime)s - %(levelname)s - %(message)s'  # Define the log format
 )
@@ -37,6 +37,15 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 # counter of processed generated points
 counter_processed = 0
+
+
+# each client needs to know where the centroids are
+# Read from file
+centroids = []
+with open("Data_Construction/centroids.log", "r") as f:
+    for line in f:
+        centroids.append(np.fromstring(line.strip()[1:-1], sep=' '))  # Convert string to NumPy array
+
 
 # get the closest points to this proxy instance (at least 10 km for now).
 # Some of the points might have been chosed by other proxies as well,
@@ -51,34 +60,43 @@ def get_closest_point() -> list[Point]:
 	# Get the latest processed file
 	latest_file = os.path.join(output_dir, f"generated_points_{counter_processed}.txt")
 
+	parsed_data = []
 	with open(latest_file, "r") as file:
-		latest_points = [line.strip().split(', ') for line in file.readlines()]
+		lines = file.readlines()
+		for l in lines:
+			parsed_data.append(parse_generated_points(l))
 
 	print("Points proxy position: " + str(proxy_position))
 
 	# Iterate over the points
-	for lp in latest_points:
-		lp = parse_point(lp[0])
-		x, y = lp.x, lp.y
+	for i, lp in enumerate(parsed_data):
+		x, y = lp[0].x, lp[0].y
 		# compute euclidian distance
 		distance = math.dist([x, y], [proxy_position[0], proxy_position[1]])
 		# 0.1 degrees is ~11 km, this is the threshold by which we
 		# can consider a point as being close to the proxy
 		if distance < 0.1:
-			close_points.append((x, y))
+			close_points.append((Point(x, y), lp[1]))
 
 	counter_processed += 1
 	return close_points
 
 
-def compute_new_matrix(points: list[Point], matrix: np.ndarray) -> np.ndarray:
+def compute_new_matrix(points: list[list[Point]], matrix: np.ndarray) -> np.ndarray:
 	print("Computing new matrix based on local proxy measurements")
 
-	# TODO - add logic to compute new type of matrix
+	# map points to basestations - don't use the IDs (PII data)
+	mapped_points = []
+	for i, p in enumerate(points):
+		before = p[0]
+		after = p[1]
 
-	# TODO - figure out which point changed basestations
-	# in order to do that, we have to retain in the start_data_generation.py the last point where
-	# the close device was before generating the new position
+		bs_before = get_basestation(centroids, before)
+		bs_after = get_basestation(centroids, after)
+
+		mapped_points.append([bs_before, bs_after])
+
+	print(mapped_points)
 
 	return matrix
 

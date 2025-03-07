@@ -155,6 +155,11 @@ kmeans.fit(data)
 centroids  = kmeans.cluster_centers_
 print(centroids)
 
+# we have to retain the positions of the centroids in a file
+with open("centroids.log", "w") as f:
+    for centroid in centroids:
+        f.write(f"{centroid}\n")
+
 figure4 = plt.figure(4)
 y_centr = data_x + [c[0] for c in centroids]
 x_centr = data_y + [c[1] for c in centroids]
