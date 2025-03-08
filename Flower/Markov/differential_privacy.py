@@ -32,17 +32,18 @@ def local_dp_gaussian(matrix):
     noise = np.random.normal(loc=0, scale=sigma, size=matrix.shape)
     noisy_matrix = matrix + noise
 
-    # Assuming noisy_matrix is already generated
-    noisy_matrix = np.maximum(noisy_matrix, 0)  # Ensure non-negative entries
+    # Avoid complete zeroing out
+    noisy_matrix = np.maximum(noisy_matrix, 1e-6)  
 
-    # Normalize each row to ensure the row sums to 1
-    row_sums = noisy_matrix.sum(axis=1, keepdims=True)  # Sum of each row
-    normalized_matrix = noisy_matrix / row_sums  # Divide each row by its sum
+    # Soft row-wise normalization
+    epsilon_smooth = 1e-6  
+    row_sums = noisy_matrix.sum(axis=1, keepdims=True) + epsilon_smooth
+    normalized_matrix = noisy_matrix / row_sums
 
-    # If any row sums to zero (which can happen due to noise), set it to a uniform distribution (or another suitable handling)
-    normalized_matrix[np.isnan(normalized_matrix)] = 0
-    normalized_matrix[normalized_matrix.sum(axis=1) == 0] = 1 / noisy_matrix.shape[1]
-    
+    # Prevent collapse to identity structure
+    zero_rows = normalized_matrix.sum(axis=1) == 0
+    normalized_matrix[zero_rows] = 1 / noisy_matrix.shape[1]
+
     return normalized_matrix
 
 

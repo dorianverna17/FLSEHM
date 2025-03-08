@@ -138,7 +138,6 @@ def query(msg: Message, context: Context):
 
 		logging.info("Client %s aggregated matrix not noisy: %s", app, aggregated_matrix)
 
-		# TODO - see why noise doesn't work
 		# Apply local differential privacy
 		noised_aggregated_matrix = dp.add_noise("local", "gaussian", aggregated_matrix)
 
