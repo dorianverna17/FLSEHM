@@ -3,7 +3,7 @@ import math
 
 from shapely.geometry import Point
 from constants import BASESTATIONS
-from typing import Tuple
+from typing import Tuple, List
 
 # This function generates a random markov matrix
 # based on the number of basestations
@@ -38,6 +38,7 @@ def parse_point(point: str) -> Point:
 def parse_generated_points(line:str) -> Tuple[Point, Point, str]:
 	# get the index of the second point (ending one)
 	index_end_p = line.find(')')
+
 	index_end_p += 1
 
 	start_p = parse_point(line[:index_end_p])
@@ -61,3 +62,24 @@ def get_basestation(centroids, point):
 			basestation = i
 
 	return basestation
+
+
+# This function creates a transition matrix, based on the
+# movement of the given point between basestations
+def create_matrix_with_points(points: List[Point], num_basestations: int) -> np.ndarray:
+	transition_matrix = []
+	for i in range(num_basestations):
+		transition_matrix.append([0 for x in range(num_basestations)])
+
+	for p in points:
+		transition_matrix[p[0]][p[1]] += 1
+
+	for i in range(len(transition_matrix)):
+		count_p = 0
+		for j in range(len(transition_matrix[i])):
+			count_p += transition_matrix[i][j]
+		if count_p != 0:
+			for j in range(len(transition_matrix[i])):
+				transition_matrix[i][j] /= count_p
+
+	return transition_matrix

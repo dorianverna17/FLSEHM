@@ -5,9 +5,12 @@ import math
 import os
 import constants as ct
 import differential_privacy as dp
+import fcntl
+import time
 
 from constants import BASESTATIONS
-from helpers import parse_point, parse_generated_points, get_basestation
+from helpers import parse_generated_points, get_basestation
+from helpers import create_matrix_with_points
 from logging import INFO
 from start_data_generation import output_dir
 from shapely.geometry import Point
@@ -26,9 +29,9 @@ proxy_position = None
 
 # Configure logging
 logging.basicConfig(
-    filename = f'Flower/Markov/output/app_client_{os.getpid()}.log',
+    filename = f'Flower/Markov/output/app_client_{os.getpid() % 4}.log',
     level=logging.INFO,  # Set the logging level
-    format='%(asctime)s - %(levelname)s - %(message)s'  # Define the log format
+    format='%(asctime)s - %(levelname)s - %(message)s',  # Define the log format
 )
 
 fds = None  # Cache FederatedDataset
@@ -42,7 +45,7 @@ counter_processed = 0
 # each client needs to know where the centroids are
 # Read from file
 centroids = []
-with open("Data_Construction/centroids.log", "r") as f:
+with open("Data_Construction/centroids.log", "r", os.O_NONBLOCK) as f:
     for line in f:
         centroids.append(np.fromstring(line.strip()[1:-1], sep=' '))  # Convert string to NumPy array
 
@@ -60,14 +63,13 @@ def get_closest_point() -> list[Point]:
 	# Get the latest processed file
 	latest_file = os.path.join(output_dir, f"generated_points_{counter_processed}.txt")
 
-	parsed_data = []
+	logging.info("Client %s reads from file %s", app, latest_file)
+
+	parsed_data = None
 	with open(latest_file, "r") as file:
 		lines = file.readlines()
-		for l in lines:
-			parsed_data.append(parse_generated_points(l))
-
-	print("Points proxy position: " + str(proxy_position))
-
+		parsed_data = [parse_generated_points(l) for l in lines]
+		
 	# Iterate over the points
 	for i, lp in enumerate(parsed_data):
 		x, y = lp[0].x, lp[0].y
@@ -77,14 +79,12 @@ def get_closest_point() -> list[Point]:
 		# can consider a point as being close to the proxy
 		if distance < 0.1:
 			close_points.append((Point(x, y), lp[1]))
-
+	
 	counter_processed += 1
 	return close_points
 
 
 def compute_new_matrix(points: list[list[Point]], matrix: np.ndarray) -> np.ndarray:
-	print("Computing new matrix based on local proxy measurements")
-
 	# map points to basestations - don't use the IDs (PII data)
 	mapped_points = []
 	for i, p in enumerate(points):
@@ -96,9 +96,14 @@ def compute_new_matrix(points: list[list[Point]], matrix: np.ndarray) -> np.ndar
 
 		mapped_points.append([bs_before, bs_after])
 
-	print(mapped_points)
+	logging.info("Client %s gathered near points: %s", app, mapped_points)
 
-	return matrix
+	# compute new matrix based only on gathered points
+	transition_matrix = create_matrix_with_points(mapped_points, BASESTATIONS)
+
+	logging.info("Client %s created new transition matrix %s", app, transition_matrix)	
+
+	return transition_matrix
 
 
 # Create Client App
@@ -111,14 +116,12 @@ def query(msg: Message, context: Context):
 	record = msg.content.parameters_records
 	if "proxy_positions" in record:
 		proxy_position = record["proxy_positions"]["proxy_position"].numpy()
-		print("Points proxy position: " + str(proxy_position))
+		logging.info("Client %s received proxy position: %s", app, str(proxy_position))
 		return msg.create_reply(RecordSet())
 	else:
 		# get server transition matrix
 		server_params = msg.content.parameters_records["markov_parameters"]
 		server_matrix = server_params['markov_matrix'].numpy()
-
-		print(server_matrix)
 
 		logging.info("Client %s received transition matrix: %s", app, server_matrix)
 
@@ -128,21 +131,24 @@ def query(msg: Message, context: Context):
 		# See which devices from the list are the closest to it. Only process these entries then.
 		close_points = get_closest_point()
 		new_matrix = compute_new_matrix(close_points, server_matrix)
-
+		
 		# aggregate received matrix with new one
 		aggregated_matrix = np.add(new_matrix, server_matrix)
-		aggregated_matrix = np.divide(aggregated_matrix, BASESTATIONS)
+		aggregated_matrix = np.divide(aggregated_matrix, 2)
 
 		logging.info("Client %s aggregated matrix not noisy: %s", app, aggregated_matrix)
 
+		# TODO - see why noise doesn't work
 		# Apply local differential privacy
 		noised_aggregated_matrix = dp.add_noise("local", "gaussian", aggregated_matrix)
 
 		logging.info("Client %s built aggregated matrix: %s", app, noised_aggregated_matrix)
 
+		matrix_to_send = aggregated_matrix
+
 		# create response
 		recordset = RecordSet()
-		markov_matrix = array_from_numpy(np.array(noised_aggregated_matrix))
+		markov_matrix = array_from_numpy(np.array(matrix_to_send))
 		parametes_records = ParametersRecord({'markov_matrix': markov_matrix})
 		recordset.parameters_records["markov_parameters"] = parametes_records
 

@@ -108,7 +108,7 @@ def main(driver: Driver, context: Context) -> None:
 				dst_node_id=node_id,
 				group_id=str(server_round),
 			)
-			messages.append(message) # TODO - verify if this is the right intent
+			messages.append(message)
 
 		# Send messages and wait for all results
 		replies = driver.send_and_receive(messages)
@@ -159,10 +159,10 @@ def designate_proxy_instances(driver: Driver, node_ids: list[int], server_round:
 	# Iterate over the proxies, generate a position for each one of them.
 	# Normally, proxies would have to be devices from the dataset, but we
 	# are not considering this option for now.
-	recordset = RecordSet()
 	messages = []
 
 	for node_id in node_ids:
+		recordset = RecordSet()
 		parametes_records = ParametersRecord({'proxy_position':
 									   array_from_numpy(np.array(sim.generate_random_point()))})
 		recordset.parameters_records["proxy_positions"] = parametes_records
@@ -172,7 +172,7 @@ def designate_proxy_instances(driver: Driver, node_ids: list[int], server_round:
 			dst_node_id=node_id,
 			group_id=str(server_round),
 		)
-		messages.append(message) # TODO - verify this as well
+		messages.append(message)
 	
 	# Send messages and wait for all results
 	replies = driver.send_and_receive(messages)
