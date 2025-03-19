@@ -1,71 +1,93 @@
-import flwr as fl
-import pandas as pd
+from collections import OrderedDict
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
 
-from client import generate_client_resources
-from client import PositionPredictionClient
-from Models.linear_regression import LinearRegressionModel
+import flwr
+from flwr.client import Client, ClientApp, NumPyClient
+from flwr.server import ServerApp, ServerConfig, ServerAppComponents
+from flwr.server.strategy import FedAvg, FedAdagrad
+from flwr.simulation import run_simulation
+from flwr_datasets import FederatedDataset
+from flwr.common import Metrics
+from flwr.common import ndarrays_to_parameters, NDArrays, Scalar, Context
 
-if __name__ == "__main__":
-	data = {
-		'device_hash': ['device1', 'device2', 'device3', 'device4', 'device5'],
-		'initial_lat': [37.7749, 34.0522, 40.7128, 51.5074, 48.8566],
-		'initial_lon': [-122.4194, -118.2437, -74.0060, -0.1278, 2.3522],
-		'final_lat': [37.7800, 34.0600, 40.7200, 51.5150, 48.8650],
-		'final_lon': [-122.4100, -118.2300, -73.9900, -0.1200, 2.3600],
+from Models.custom_tutorial_training import DEVICE, NUM_PARTITIONS, get_parameters
+from Models.custom_tutorial_training import Net
+from client import client_fn
+
+print(f"Training on {DEVICE}")
+print(f"Flower {flwr.__version__} / PyTorch {torch.__version__}")
+
+# Create an instance of the model and get the parameters
+params = get_parameters(Net())
+
+round = 0
+
+def fit_config(server_round: int):
+	"""Generate training configuration for each round."""
+	# Create the configuration dictionary
+	config = {
+		"current_round": server_round,
 	}
-	df = pd.DataFrame(data)
+	return config
 
-	client_resources = generate_client_resources(df)
+class CustomStrategy(flwr.server.strategy.FedAvg):
+	def aggregate_fit(
+		self,
+		server_round: int,
+		results,
+		failures,
+	) -> Optional[Metrics]:
+		global round
+		
+		# Aggregate results using default FedAvg
+		aggregated_metrics = super().aggregate_fit(server_round, results, failures)
 
-	print(type(client_resources))
-	print(client_resources)
-	print()
+		super.on_fit_config_fn=fit_config
 
-	for key in client_resources:
-		c = client_resources[key]()
-		print(str(c.device_data))
+		return aggregated_metrics
 
-	def fit_config(server_round: int):
-		config = {
-			"server_round": server_round,
-		}
-		return config
-	
-	strategy = fl.server.strategy.FedAvg(
-		fraction_fit=0.8,
-		min_fit_clients=4,
-		min_available_clients=len(df['device_hash'].unique()),
-		on_fit_config_fn=fit_config,
+
+def server_fn(context: Context) -> ServerAppComponents:
+	# Create FedAvg strategy
+	strategy = CustomStrategy(
+		fraction_fit=0.3,
+		fraction_evaluate=0.3,
+		min_fit_clients=3,
+		min_evaluate_clients=3,
+		min_available_clients=NUM_PARTITIONS,
+		initial_parameters=ndarrays_to_parameters(
+			params
+		),  # Pass initial model parameters
 	)
 
-	def get_client_fn(client_id):
-		print(client_id.node_id)
-		return client_resources[client_id.node_id % len(df['device_hash'].unique())]()
+	# Configure the server for 3 rounds of training
+	config = ServerConfig(num_rounds=3)
+	return ServerAppComponents(strategy=strategy, config=config)
 
-	history = fl.simulation.start_simulation(
-		client_fn=get_client_fn,
-		client_resources = {'num_cpus': 1, 'num_gpus': 0.0},
-		num_clients=len(df['device_hash'].unique()),
-		config=fl.server.ServerConfig(num_rounds=10),
-		strategy=strategy,
-	)
 
-	# if history.losses_distributed:
-	# 	global_model_parameters = history.losses_distributed[-1][1]
-	# 	dummy_client = PositionPredictionClient(df.head(1))
-	# 	dummy_client.set_parameters(global_model_parameters)
-	# 	global_model = dummy_client.model
+# Create ServerApp
+server = ServerApp(server_fn=server_fn)
 
-	# 	new_initial_positions = pd.DataFrame({
-	# 		'initial_lat': [38.0, 35.0],
-	# 		'initial_lon': [-122.0, -119.0],
-	# 	})
+# Specify the resources each of your clients need
+# If set to none, by default, each client will be allocated 2x CPU and 0x GPUs
+backend_config = {"client_resources": None}
+if DEVICE.type == "cuda":
+	backend_config = {"client_resources": {"num_gpus": 1}}
 
-	# 	predicted_changes_lat, predicted_changes_lon = global_model.predict(new_initial_positions)
+# Create the ClientApp
+clientApp = ClientApp(client_fn=client_fn)
 
-	# 	predicted_final_lat = new_initial_positions['initial_lat'] + predicted_changes_lat
-	# 	predicted_final_lon = new_initial_positions['initial_lon'] + predicted_changes_lon
-
-	# 	print('Predicted final latitude: ', predicted_final_lat)
-	# 	print('Predicted final longitude: ', predicted_final_lon)
+# Run simulation
+run_simulation(
+	server_app=server,
+	client_app=clientApp,
+	num_supernodes=NUM_PARTITIONS,
+	backend_config=backend_config,
+)

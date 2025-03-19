@@ -1,53 +1,63 @@
-import flwr as fl
-import pandas as pd
+from Models.custom_tutorial_training import DEVICE, NUM_PARTITIONS, get_parameters
+from Models.custom_tutorial_training import Net, set_parameters, test, train
+from utils import load_datasets
+
+from collections import OrderedDict
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
 
-from flwr.common import FitRes, EvaluateRes, Parameters, Scalar
-from typing import Dict, Tuple, List
-from Models.linear_regression import LinearRegressionModel
+import flwr
+from flwr.client import Client, ClientApp, NumPyClient
+from flwr.server import ServerApp, ServerConfig, ServerAppComponents
+from flwr.server.strategy import FedAvg, FedAdagrad
+from flwr.simulation import run_simulation
+from flwr_datasets import FederatedDataset
+from flwr.common import ndarrays_to_parameters, NDArrays, Scalar, Context
 
-class PositionPredictionClient(fl.client.NumPyClient):
-	def __init__(self, device_data: pd.DataFrame):
-		self.device_data = device_data
-		self.model = LinearRegressionModel()
+# from server import round
 
-	def get_parameters(self, config: Dict[str, Scalar]) -> List[np.ndarray]:
-		return self.model.get_parameters()
+DEVICE = torch.device("cpu")  # Try "cuda" to train on GPU
 
-	def set_parameters(self, parameters: List[np.ndarray]) -> None:
-		self.model.set_parameters(parameters)
+NUM_PARTITIONS = 10
+BATCH_SIZE = 32
 
-	def fit(self, parameters: List[np.ndarray], config: Dict):
-		self.set_parameters(parameters)
+class FlowerClient(NumPyClient):
+	def __init__(self, partition_id, net, trainloader, valloader):
+		self.partition_id = partition_id
+		self.net = net
+		self.trainloader = trainloader
+		self.valloader = valloader
 
-		X = self.device_data[['initial_lat', 'initial_lon']]
-		y_lat = self.device_data['final_lat']
-		y_lon = self.device_data['final_lon']
+	def get_parameters(self, config):
+		print(f"[Client {self.partition_id}] get_parameters")
+		return get_parameters(self.net)
 
-		self.model.train(X, y_lat, y_lon)
+	def fit(self, parameters, config):
+		print(f"[Client {self.partition_id}] fit, config: {config}")
+		print("Round printed by client is " + str(config["current_round"]))
+		set_parameters(self.net, parameters)
+		train(self.net, self.trainloader, epochs=1)
+		return get_parameters(self.net), len(self.trainloader), {}
 
-		return FitRes(
-			status=fl.common.Status.OK,
-			parameters=self.get_parameters(config),
-			num_examples=len(self.device_data),
-			metrics={},
-		)
+	def evaluate(self, parameters, config):
+		print(f"[Client {self.partition_id}] evaluate, config: {config}")
+		set_parameters(self.net, parameters)
+		loss, accuracy = test(self.net, self.valloader)
+		return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
-	def evaluate(self, parameters: List[np.ndarray], config: Dict[str, Scalar]):
-		self.set_parameters(parameters)
-		
-		return EvaluateRes(
-			status=fl.common.Status.OK,
-			loss=0.0,
-			num_examples=len(self.device_data),
-			metrics={},
-		)
 
-def client_fn(device_hash: str, df: pd.DataFrame) -> fl.client.NumPyClient:
-	device_data = df[df['device_hash'] == device_hash]
-	return PositionPredictionClient(device_data)
+def client_fn(context: Context) -> Client:
+	net = Net().to(DEVICE)
 
-def generate_client_resources(df: pd.DataFrame) -> Dict[str, fl.client.ClientFn]:
-	device_hashes = df['device_hash'].unique()
-	client_resources = {int(device_hash[len(device_hash) - 1]) - 1:lambda : client_fn(device_hash, df) for device_hash in device_hashes}
-	return client_resources
+	# Read the node_config to fetch data partition associated to this node
+	partition_id = context.node_config["partition-id"]
+	num_partitions = context.node_config["num-partitions"]
+	
+	trainloader, valloader, _ = load_datasets(partition_id, num_partitions)
+	return FlowerClient(partition_id, net, trainloader, valloader).to_client()
