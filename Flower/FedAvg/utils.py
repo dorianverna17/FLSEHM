@@ -1,11 +1,22 @@
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
+import os
+import math
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+
+from constants import BASESTATIONS
+from helpers import parse_generated_points, get_basestation
+from helpers import create_matrix_with_points
+from logging import INFO
+from start_data_generation import output_dir
+from shapely.geometry import Point
+
 from torch.utils.data import DataLoader
 
 import flwr
@@ -51,50 +62,49 @@ def load_datasets(partition_id: int, num_partitions: int):
 	return trainloader, valloader, testloader
 
 
-# # counter of processed generated points
-# counter_processed = 0
+# counter of processed generated points
+counter_processed = 0
 
-# # each client needs to know where the centroids are
-# # Read from file
-# centroids = []
-# with open("Data_Construction/centroids.log", "r", os.O_NONBLOCK) as f:
-#     for line in f:
-#         centroids.append(np.fromstring(line.strip()[1:-1], sep=' '))  # Convert string to NumPy array
+# each client needs to know where the centroids are
+# Read from file
+centroids = []
+with open("Data_Construction/centroids.log", "r", os.O_NONBLOCK) as f:
+    for line in f:
+        centroids.append(np.fromstring(line.strip()[1:-1], sep=' '))  # Convert string to NumPy array
 
 
-# # get the closest points to this proxy instance (at least 10 km for now).
-# # Some of the points might have been chosed by other proxies as well,
-# # which is not a problem.
-# def get_closest_point() -> list[Point]:
-# 	global counter_processed, proxy_position
-# 	# List of devices positions that the proxy sees as being
-# 	# around it. The proxy will use this positions to compute
-# 	# a new Markov transition matrix
-# 	close_points = []
+# get the closest points to this proxy instance (at least 10 km for now).
+# Some of the points might have been chosed by other proxies as well,
+# which is not a problem.
+def get_closest_point(proxy_position: Point, node_id: int, server_round: int) -> list[Point]:
+	# List of devices positions that the proxy sees as being
+	# around it. The proxy will use this positions to compute
+	# a new Markov transition matrix
+	close_points = []
 
-# 	# Get the latest processed file
-# 	latest_file = os.path.join(output_dir, f"generated_points_{counter_processed}.txt")
+	# Get the latest processed file
+	latest_file = os.path.join(output_dir, f"generated_points_{server_round}.txt")
 
-# 	logging.info("Client %s reads from file %s", app, latest_file)
+	logging.info("Client %d reads from file %s", node_id, latest_file)
 
-# 	parsed_data = None
-# 	with open(latest_file, "r") as file:
-# 		lines = file.readlines()
-# 		parsed_data = [parse_generated_points(l) for l in lines]
+	parsed_data = None
+	with open(latest_file, "r") as file:
+		lines = file.readlines()
+		parsed_data = [parse_generated_points(l) for l in lines]
 		
-# 	# Iterate over the points
-# 	for i, lp in enumerate(parsed_data):
-# 		x, y = lp[0].x, lp[0].y
-# 		# compute euclidian distance
-# 		distance = math.dist([x, y], [proxy_position[0], proxy_position[1]])
-# 		# 0.1 degrees is ~11 km, this is the threshold by which we
-# 		# can consider a point as being close to the proxy
-# 		if distance < 0.1:
-# 			close_points.append((Point(x, y), lp[1]))
+	# Iterate over the points
+	for i, lp in enumerate(parsed_data):
+		x, y = lp[0].x, lp[0].y
+		# compute euclidian distance
+		distance = math.dist([x, y], [proxy_position[0], proxy_position[1]])
+		# 0.1 degrees is ~11 km, this is the threshold by which we
+		# can consider a point as being close to the proxy
+		if distance < 0.1:
+			close_points.append((Point(x, y), lp[1]))
 	
-# 	counter_processed += 1
-# 	return close_points
+	counter_processed += 1
+	return close_points
 
 
-def load_dataset_GNSS(partition_id: int, num_partitions: int):
-	pass
+def load_dataset_GNSS(proxy_position: Point, node_id: int, server_round:int):
+	return get_closest_point(proxy_position, node_id, server_round)

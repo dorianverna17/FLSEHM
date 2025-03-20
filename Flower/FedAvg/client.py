@@ -41,6 +41,9 @@ class FlowerClient(NumPyClient):
 	def fit(self, parameters, config):
 		print(f"[Client {self.partition_id}] fit, config: {config}")
 		print("Round printed by client is " + str(config["current_round"]))
+
+		print("This client has proxy position: " + str(config["proxy_positions"]))
+
 		set_parameters(self.net, parameters)
 		train(self.net, self.trainloader, epochs=1)
 		return get_parameters(self.net), len(self.trainloader), {}
