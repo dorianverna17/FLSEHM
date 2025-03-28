@@ -69,6 +69,13 @@ Alternatively, in order to make use of the simulated data, based on the cold-sta
 Flower/Markov/start_simulation.sh
 ```
 
+## Flower FedAvg
+
+How to run
+```
+Flower/FedAvg/start_simulation.sh
+```
+
 # Running Conda
 
 Prerequisited: it is necessary to use the dependencies installed with Conda:

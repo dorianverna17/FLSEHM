@@ -1,5 +1,4 @@
-from Models.custom_tutorial_training import DEVICE, NUM_PARTITIONS, get_parameters
-from Models.custom_tutorial_training import Net, set_parameters, test, train
+from Models.linear_regression import LinearRegressionModel
 from utils import load_datasets
 
 from collections import OrderedDict
@@ -20,19 +19,20 @@ from flwr.simulation import run_simulation
 from flwr_datasets import FederatedDataset
 from flwr.common import ndarrays_to_parameters, NDArrays, Scalar, Context
 
-# from server import round
+from utils import load_dataset_GNSS
 
 DEVICE = torch.device("cpu")  # Try "cuda" to train on GPU
 
 NUM_PARTITIONS = 10
 BATCH_SIZE = 32
 
+proxy_pos = None
+
 class FlowerClient(NumPyClient):
-	def __init__(self, partition_id, net, trainloader, valloader):
+	def __init__(self, partition_id, model, points):
 		self.partition_id = partition_id
-		self.net = net
-		self.trainloader = trainloader
-		self.valloader = valloader
+		self.model = model
+		self.points = points
 
 	def get_parameters(self, config):
 		print(f"[Client {self.partition_id}] get_parameters")
@@ -41,26 +41,31 @@ class FlowerClient(NumPyClient):
 	def fit(self, parameters, config):
 		print(f"[Client {self.partition_id}] fit, config: {config}")
 		print("Round printed by client is " + str(config["current_round"]))
+		print("This client has proxy position: " + str(config["proxy_position"]))
 
-		print("This client has proxy position: " + str(config["proxy_positions"]))
+		# now the client has to figure out which are the points it consideres
+		# based on the round, the list of points, and the proxy positions
 
-		set_parameters(self.net, parameters)
-		train(self.net, self.trainloader, epochs=1)
-		return get_parameters(self.net), len(self.trainloader), {}
+		# TODO - modify this function
+		return None
 
 	def evaluate(self, parameters, config):
 		print(f"[Client {self.partition_id}] evaluate, config: {config}")
-		set_parameters(self.net, parameters)
-		loss, accuracy = test(self.net, self.valloader)
-		return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
+
+		# TODO - modify this
+		return 0, 0, None
 
 
 def client_fn(context: Context) -> Client:
-	net = Net().to(DEVICE)
+	model = LinearRegressionModel()
 
 	# Read the node_config to fetch data partition associated to this node
 	partition_id = context.node_config["partition-id"]
 	num_partitions = context.node_config["num-partitions"]
-	
-	trainloader, valloader, _ = load_datasets(partition_id, num_partitions)
-	return FlowerClient(partition_id, net, trainloader, valloader).to_client()
+
+	# Each client loads all the data generated
+	points = load_dataset_GNSS()
+
+	print("Client loaded dataset")
+
+	return FlowerClient(partition_id, net, points).to_client()

@@ -19,7 +19,7 @@ sim = module_from_file("bar", "Data_construction/simulate_GNSS_data_v2.py")
 count = 0
 
 # Create output directory
-output_dir = "Flower/Markov/generated_points"
+output_dir = "Flower/FedAvg/generated_points"
 os.makedirs(output_dir, exist_ok=True)
 
 # get the cold data points

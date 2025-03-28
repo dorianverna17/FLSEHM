@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 
-from constants import BASESTATIONS
+from constants import BASESTATIONS, FILES_TO_GENERATE
 from helpers import parse_generated_points, get_basestation
 from helpers import create_matrix_with_points
 from logging import INFO
@@ -33,7 +33,6 @@ print(f"Flower {flwr.__version__} / PyTorch {torch.__version__}")
 
 NUM_PARTITIONS = 10
 BATCH_SIZE = 32
-
 
 def load_datasets(partition_id: int, num_partitions: int):
 	fds = FederatedDataset(dataset="cifar10", partitioners={"train": num_partitions})
@@ -106,5 +105,20 @@ def get_closest_point(proxy_position: Point, node_id: int, server_round: int) ->
 	return close_points
 
 
-def load_dataset_GNSS(proxy_position: Point, node_id: int, server_round:int):
-	return get_closest_point(proxy_position, node_id, server_round)
+# This function returns the list of rounds, along with the points
+# read from each one of them
+def load_dataset_GNSS():
+	points = []
+	# get a list of generated files
+	for file in range(FILES_TO_GENERATE):
+		current_file = os.path.join(output_dir, f"generated_points_{file}.txt")
+
+		parsed_data = None
+		with open(file, "r") as file:
+			lines = file.readlines()
+			parsed_data = [parse_generated_points(l) for l in lines]
+
+		points.append([file, parsed_data])
+
+	return points
+		

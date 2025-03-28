@@ -1,6 +1,7 @@
 # File that constains constants used in the program
 BASESTATIONS = 2
 NO_CLIENTS = 3
+FILES_TO_GENERATE = 10
 
 # configuration for LDP
 clipping_norm = 1.0  # Clips gradients with norm above 1.0

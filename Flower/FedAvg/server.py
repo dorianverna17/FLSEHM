@@ -41,11 +41,6 @@ def module_from_file(module_name, file_path):
 
 sim = module_from_file("bar", "Data_construction/simulate_GNSS_data_v2.py")
 
-# For the number of clients that we have, generate the proxy positions
-proxy_positions = []
-for i in range(NO_CLIENTS):
-	proxy_positions.append(sim.generate_random_point())
-
 # copied shamelessly from http://flower.ai/docs/framework/how-to-use-strategies.html
 def get_on_fit_config_fn() -> Callable[[int], Dict[str, str]]:
 	"""Return a function which returns training configurations."""
@@ -58,7 +53,7 @@ def get_on_fit_config_fn() -> Callable[[int], Dict[str, str]]:
 			"learning_rate": str(0.001),
 			"batch_size": str(32),
 			"current_round": server_round,
-			"proxy_positions": str(proxy_positions)
+			"proxy_position": str(sim.generate_random_point())
 		}
 		return config
 
