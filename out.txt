@@ -1,13 +1,14 @@
-<class 'dict'>
-{0: <function generate_client_resources.<locals>.<lambda> at 0x13a4ca5c0>, 1: <function generate_client_resources.<locals>.<lambda> at 0x165fca340>, 2: <function generate_client_resources.<locals>.<lambda> at 0x165fca3e0>, 3: <function generate_client_resources.<locals>.<lambda> at 0x165fca480>, 4: <function generate_client_resources.<locals>.<lambda> at 0x165fca520>}
-
-  device_hash  initial_lat  initial_lon  final_lat  final_lon
-4     device5      48.8566       2.3522     48.865       2.36
-  device_hash  initial_lat  initial_lon  final_lat  final_lon
-4     device5      48.8566       2.3522     48.865       2.36
-  device_hash  initial_lat  initial_lon  final_lat  final_lon
-4     device5      48.8566       2.3522     48.865       2.36
-  device_hash  initial_lat  initial_lon  final_lat  final_lon
-4     device5      48.8566       2.3522     48.865       2.36
-  device_hash  initial_lat  initial_lon  final_lat  final_lon
-4     device5      48.8566       2.3522     48.865       2.36
+[36m(ClientAppActor pid=96969)[0m Client loaded dataset
+[36m(ClientAppActor pid=96969)[0m [Client 5] fit, config: {'batch_size': '32', 'learning_rate': '0.001', 'current_round': 1}
+[36m(ClientAppActor pid=96969)[0m Round printed by client is 1
+[36m(ClientAppActor pid=96966)[0m [Client 7] fit, config: {'learning_rate': '0.001', 'batch_size': '32', 'current_round': 1}
+[36m(ClientAppActor pid=96967)[0m [Client 3] fit, config: {'learning_rate': '0.001', 'current_round': 1, 'batch_size': '32'}
+[36m(ClientAppActor pid=96969)[0m [Client 5] evaluate, config: {}
+[36m(ClientAppActor pid=96969)[0m [Client 5] fit, config: {'batch_size': '32', 'learning_rate': '0.001', 'current_round': 2}
+[36m(ClientAppActor pid=96966)[0m [Client 1] fit, config: {'learning_rate': '0.001', 'batch_size': '32', 'current_round': 2}
+[36m(ClientAppActor pid=96966)[0m [Client 2] fit, config: {'batch_size': '32', 'current_round': 3, 'learning_rate': '0.001'}
+[36m(ClientAppActor pid=96967)[0m Client loaded dataset[32m [repeated 17x across cluster] (Ray deduplicates logs by default. Set RAY_DEDUP_LOGS=0 to disable log deduplication, or see https://docs.ray.io/en/master/ray-observability/user-guides/configure-logging.html#log-deduplication for more options.)[0m
+[36m(ClientAppActor pid=96967)[0m Round printed by client is 3[32m [repeated 8x across cluster][0m
+[36m(ClientAppActor pid=96967)[0m [Client 9] fit, config: {'learning_rate': '0.001', 'batch_size': '32', 'current_round': 2}
+[36m(ClientAppActor pid=96967)[0m [Client 8] fit, config: {'learning_rate': '0.001', 'current_round': 3, 'batch_size': '32'}[32m [repeated 2x across cluster][0m
+[36m(ClientAppActor pid=96967)[0m [Client 5] evaluate, config: {}[32m [repeated 8x across cluster][0m

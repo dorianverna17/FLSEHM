@@ -1,15 +1,11 @@
 from Models.linear_regression import LinearRegressionModel
-from utils import load_datasets
-
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
+import importlib.util
+
+import random
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
 
 import flwr
 from flwr.client import Client, ClientApp, NumPyClient
@@ -19,41 +15,74 @@ from flwr.simulation import run_simulation
 from flwr_datasets import FederatedDataset
 from flwr.common import ndarrays_to_parameters, NDArrays, Scalar, Context
 
-from utils import load_dataset_GNSS
-
-DEVICE = torch.device("cpu")  # Try "cuda" to train on GPU
+from utils import load_dataset_GNSS, get_closest_point
 
 NUM_PARTITIONS = 10
 BATCH_SIZE = 32
 
-proxy_pos = None
+def split_data(x):
+    random.shuffle(x)  # Shuffles in place, does not return anything
+    split_idx = int(3 * len(x) / 4)  # Ensuring integer index
+    return x[:split_idx], x[split_idx:]
+
+# duplicated code, make sure to delete it at some point
+def module_from_file(module_name, file_path):
+	spec = importlib.util.spec_from_file_location(module_name, file_path)
+	module = importlib.util.module_from_spec(spec)
+	spec.loader.exec_module(module)
+	return module
+
+sim = module_from_file("bar", "Data_construction/simulate_GNSS_data_v2.py")
 
 class FlowerClient(NumPyClient):
 	def __init__(self, partition_id, model, points):
 		self.partition_id = partition_id
 		self.model = model
 		self.points = points
+		self.proxy_position = sim.generate_random_point()
+
+		# get the closest points used in training for the current round
+		self.closest_points = get_closest_point(self.proxy_position, self.partition_id,
+									 self.points[0])
+
+		# split the closest points between train loader and valloader
+		# use train test split random approach (80% - 20%)
+		self.trainloader, self.valloader = split_data(self.closest_points)
+
 
 	def get_parameters(self, config):
 		print(f"[Client {self.partition_id}] get_parameters")
-		return get_parameters(self.net)
+		return self.model.get_parameters()
 
 	def fit(self, parameters, config):
 		print(f"[Client {self.partition_id}] fit, config: {config}")
 		print("Round printed by client is " + str(config["current_round"]))
-		print("This client has proxy position: " + str(config["proxy_position"]))
+		
+		# get the closest points used in training for the current round
+		self.closest_points = get_closest_point(self.proxy_position, self.partition_id,
+									 self.points[config["current_round"]])
 
-		# now the client has to figure out which are the points it consideres
-		# based on the round, the list of points, and the proxy positions
+		# split the closest points between train loader and valloader
+		# use train test split random approach (80% - 20%)
+		self.trainloader, self.valloader = split_data(self.closest_points)
 
-		# TODO - modify this function
-		return None
+		self.model.set_parameters(parameters)
+
+		self.model.train([[elem.x, elem.y] for elem in self.trainloader[0]],
+				[elem.x for elem in self.trainloader[1]],
+				[elem.y for elem in self.trainloader[1]])
+		return self.model.get_parameters(), len(self.trainloader), {}
 
 	def evaluate(self, parameters, config):
 		print(f"[Client {self.partition_id}] evaluate, config: {config}")
+		
+		self.model.set_parameters(parameters)
+		final_lat, final_lon = self.model.predict(
+			[[elem.x, elem.y] for  elem in self.valloader[0]])
+		
+		loss, accuracy = self.model.compute_loss_and_accuracy(self.valloader[0], final_lat, final_lon)
 
-		# TODO - modify this
-		return 0, 0, None
+		return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
 
 def client_fn(context: Context) -> Client:
@@ -68,4 +97,4 @@ def client_fn(context: Context) -> Client:
 
 	print("Client loaded dataset")
 
-	return FlowerClient(partition_id, net, points).to_client()
+	return FlowerClient(partition_id, model, points).to_client()

@@ -27,10 +27,6 @@ from flwr.simulation import run_simulation
 from flwr_datasets import FederatedDataset
 from flwr.common import ndarrays_to_parameters, NDArrays, Scalar, Context
 
-DEVICE = torch.device("cpu")  # Try "cuda" to train on GPU
-print(f"Training on {DEVICE}")
-print(f"Flower {flwr.__version__} / PyTorch {torch.__version__}")
-
 NUM_PARTITIONS = 10
 BATCH_SIZE = 32
 
@@ -75,33 +71,20 @@ with open("Data_Construction/centroids.log", "r", os.O_NONBLOCK) as f:
 # get the closest points to this proxy instance (at least 10 km for now).
 # Some of the points might have been chosed by other proxies as well,
 # which is not a problem.
-def get_closest_point(proxy_position: Point, node_id: int, server_round: int) -> list[Point]:
-	# List of devices positions that the proxy sees as being
-	# around it. The proxy will use this positions to compute
-	# a new Markov transition matrix
+def get_closest_point(proxy_position: Point, node_id: int,
+					  points: Tuple[int, Tuple[Point, Point, str]]) -> list[Tuple[Point, Point]]:
 	close_points = []
 
-	# Get the latest processed file
-	latest_file = os.path.join(output_dir, f"generated_points_{server_round}.txt")
-
-	logging.info("Client %d reads from file %s", node_id, latest_file)
-
-	parsed_data = None
-	with open(latest_file, "r") as file:
-		lines = file.readlines()
-		parsed_data = [parse_generated_points(l) for l in lines]
-		
 	# Iterate over the points
-	for i, lp in enumerate(parsed_data):
-		x, y = lp[0].x, lp[0].y
+	for i, p in enumerate(points[1]):
+		x, y = p[0].x, p[0].y
 		# compute euclidian distance
 		distance = math.dist([x, y], [proxy_position[0], proxy_position[1]])
 		# 0.1 degrees is ~11 km, this is the threshold by which we
 		# can consider a point as being close to the proxy
 		if distance < 0.1:
-			close_points.append((Point(x, y), lp[1]))
-	
-	counter_processed += 1
+			close_points.append((Point(x, y), p[1]))
+
 	return close_points
 
 
@@ -114,11 +97,11 @@ def load_dataset_GNSS():
 		current_file = os.path.join(output_dir, f"generated_points_{file}.txt")
 
 		parsed_data = None
-		with open(file, "r") as file:
-			lines = file.readlines()
+		with open(current_file, "r") as file_read:
+			lines = file_read.readlines()
 			parsed_data = [parse_generated_points(l) for l in lines]
 
-		points.append([file, parsed_data])
+		points.append((file, parsed_data))
 
 	return points
 		
