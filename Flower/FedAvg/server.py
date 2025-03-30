@@ -5,6 +5,8 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Callable
 
 import numpy as np
+import os
+import logging
 
 import flwr
 from flwr.client import Client, ClientApp, NumPyClient
@@ -47,6 +49,29 @@ def get_on_fit_config_fn() -> Callable[[int], Dict[str, str]]:
 
 	return fit_config
 
+def get_on_evaluate_config_fn() -> Callable[[int], Dict[str, str]]:
+	"""Return a function which returns training configurations."""
+
+	def evaluate_config(server_round: int) -> Dict[str, str]:
+		"""Return a configuration with static batch size and (local) epochs."""
+		global proxy_positions
+
+		config = {
+			"current_round": server_round,
+		}
+		return config
+
+	return evaluate_config
+
+def evaluate_metrics_aggregation_fn():
+	def evaluate_metrics_aggregation(metrics):
+		print("Server obtained the following metrics:" + str(metrics))		
+
+		accuracies = [m[1]["accuracy"] for m in metrics]
+		return {"accuracy": int(sum(accuracies)) / len(accuracies)}
+
+	return evaluate_metrics_aggregation
+
 
 def server_fn(context: Context) -> ServerAppComponents:
 	# Create FedAvg strategy
@@ -60,10 +85,12 @@ def server_fn(context: Context) -> ServerAppComponents:
 			params
 		),  # Pass initial model parameters
 		on_fit_config_fn=get_on_fit_config_fn(),
+		on_evaluate_config_fn=get_on_evaluate_config_fn(),
+		evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn(),
 	)
 
-	# Configure the server for 3 rounds of training
-	config = ServerConfig(num_rounds=3)
+	# Configure the server for 7 rounds of training
+	config = ServerConfig(num_rounds=7)
 	return ServerAppComponents(strategy=strategy, config=config)
 
 # Create ServerApp

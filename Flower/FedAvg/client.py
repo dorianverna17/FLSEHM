@@ -6,6 +6,8 @@ import importlib.util
 
 import random
 import numpy as np
+import os
+import logging
 
 import flwr
 from flwr.client import Client, ClientApp, NumPyClient
@@ -34,6 +36,13 @@ def module_from_file(module_name, file_path):
 
 sim = module_from_file("bar", "Data_construction/simulate_GNSS_data_v2.py")
 
+# Configure logging
+logging.basicConfig(
+	filename = f'Flower/FedAvg/output/app_client_{os.getpid()}.log',
+	level=logging.INFO,  # Set the logging level
+	format='%(asctime)s - %(levelname)s - %(message)s',  # Define the log format
+)
+
 class FlowerClient(NumPyClient):
 	def __init__(self, partition_id, model, points):
 		self.partition_id = partition_id
@@ -51,12 +60,11 @@ class FlowerClient(NumPyClient):
 
 
 	def get_parameters(self, config):
-		print(f"[Client {self.partition_id}] get_parameters")
+		logging.info(f"[Client {self.partition_id}] get_parameters")
 		return self.model.get_parameters()
 
 	def fit(self, parameters, config):
-		print(f"[Client {self.partition_id}] fit, config: {config}")
-		print("Round printed by client is " + str(config["current_round"]))
+		logging.info(f"[Client {self.partition_id}] fit, config: {config}")
 		
 		# get the closest points used in training for the current round
 		self.closest_points = get_closest_point(self.proxy_position, self.partition_id,
@@ -71,16 +79,19 @@ class FlowerClient(NumPyClient):
 		self.model.train([[elem.x, elem.y] for elem in self.trainloader[0]],
 				[elem.x for elem in self.trainloader[1]],
 				[elem.y for elem in self.trainloader[1]])
+
 		return self.model.get_parameters(), len(self.trainloader), {}
 
 	def evaluate(self, parameters, config):
-		print(f"[Client {self.partition_id}] evaluate, config: {config}")
+		logging.info(f"[Client {self.partition_id}] evaluate, config: {config}")
 		
 		self.model.set_parameters(parameters)
 		final_lat, final_lon = self.model.predict(
 			[[elem.x, elem.y] for  elem in self.valloader[0]])
-		
+
 		loss, accuracy = self.model.compute_loss_and_accuracy(self.valloader[0], final_lat, final_lon)
+
+		logging.info(f"[Client {self.partition_id}] model accuracy at round {config["current_round"]}: {accuracy}")
 
 		return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
@@ -95,6 +106,6 @@ def client_fn(context: Context) -> Client:
 	# Each client loads all the data generated
 	points = load_dataset_GNSS()
 
-	print("Client loaded dataset")
+	logging.info(f"[Client {partition_id}] loaded dataset")
 
 	return FlowerClient(partition_id, model, points).to_client()

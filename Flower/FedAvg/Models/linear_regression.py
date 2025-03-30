@@ -39,7 +39,7 @@ class LinearRegressionModel:
 		# loss will be a mean between the RMSE for latitude
 		# and RMSE for longitute
 		sum_rmse_lat = 0
-		for i in range(len(accuracy_lat)):
+		for i in range(len(actual_lat)):
 			sum_rmse_lat += (actual_lat[i] - predicted_lat[i])**2
 		sum_rmse_lat /= len(actual_lat)
 		rmse_lat = math.sqrt(sum_rmse_lat)
@@ -54,16 +54,16 @@ class LinearRegressionModel:
 
 		# accuracy will be a mean between the accuracy for
 		# latitude and accuracy for longitute
-		threshold = 0.02 # (11 km / 5)
+		threshold = 0.08 # (4 * 11 km / 5)
 		accuracy_lat = 0
-		for i in range(len(accuracy_lat)):
-			if math.abs(predicted_lat[i] - accuracy_lat[i]) < threshold:
+		for i in range(len(actual_lat)):
+			if abs(predicted_lat[i] - actual_lat[i]) < threshold:
 				accuracy_lat += 1
 		accuracy_lat = (100 * accuracy_lat) / len(actual_lat)
 
 		accuracy_lon = 0
-		for i in range(len(accuracy_lon)):
-			if math.abs(predicted_lon[i] - accuracy_lon[i]) < threshold:
+		for i in range(len(actual_lon)):
+			if abs(predicted_lon[i] - actual_lon[i]) < threshold:
 				accuracy_lon += 1
 		accuracy_lon = (100 * accuracy_lon) / len(actual_lon)
 
