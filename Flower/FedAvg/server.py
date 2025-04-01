@@ -8,6 +8,8 @@ import numpy as np
 import os
 import logging
 
+from torch import tensor, float32
+
 import flwr
 from flwr.client import Client, ClientApp, NumPyClient
 from flwr.server import ServerApp, ServerConfig, ServerAppComponents
@@ -22,13 +24,45 @@ from client import client_fn
 from constants import NO_CLIENTS
 
 # Create an instance of the model and get the parameters
-model = LinearRegressionModel()
-params = [
+model_to_use = os.environ['FD_MODEL']
+
+params_linear_regression = [
 	np.array([0.9, 0.1]),
 	np.array([1.0]),
 	np.array([0.2, 0.8]),
 	np.array([-0.5]),
 ]
+
+def generate_fixed_parameters():
+    """
+    Generates fixed initial parameters for a NeuralNetworkModel with input_dim=2.
+    """
+    input_dim = 2
+
+    lat_w1 = np.full((16, input_dim), 0.1)
+    lat_b1 = np.full((16,), 0.01)
+    lon_w1 = np.full((16, input_dim), 0.2)
+    lon_b1 = np.full((16,), 0.02)
+
+    lat_w2 = np.full((1, 16), 0.05)
+    lat_b2 = np.array([0.001])
+    lon_w2 = np.full((1, 16), 0.07)
+    lon_b2 = np.array([0.002])
+
+    return [lat_w1, lat_b1, lat_w2, lat_b2, lon_w1, lon_b1, lon_w2, lon_b2]
+
+# Example usage
+fixed_params = generate_fixed_parameters()
+
+params_nn_model = [tensor(p, dtype=float32) for p in fixed_params]
+
+params = None
+if model_to_use == "linear_regression":
+	params = params_linear_regression
+elif model_to_use == "nn_model":
+	params = params_nn_model
+else: # default to linear regression
+	params = params_linear_regression
 
 round = 0
 

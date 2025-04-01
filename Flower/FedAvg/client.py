@@ -1,4 +1,5 @@
 from Models.linear_regression import LinearRegressionModel
+from Models.nn_model import NeuralNetworkModel
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
@@ -58,6 +59,8 @@ class FlowerClient(NumPyClient):
 		# use train test split random approach (80% - 20%)
 		self.trainloader, self.valloader = split_data(self.closest_points)
 
+		logging.info("Model used in client " + model.name)
+
 
 	def get_parameters(self, config):
 		logging.info(f"[Client {self.partition_id}] get_parameters")
@@ -97,11 +100,19 @@ class FlowerClient(NumPyClient):
 
 
 def client_fn(context: Context) -> Client:
-	model = LinearRegressionModel()
+	model = None
 
 	# Read the node_config to fetch data partition associated to this node
 	partition_id = context.node_config["partition-id"]
 	num_partitions = context.node_config["num-partitions"]
+	model_to_use = os.environ['FD_MODEL']
+
+	if model_to_use == "linear_regression":
+		model = LinearRegressionModel()
+	elif model_to_use == "nn_model":
+		model = NeuralNetworkModel()
+	else: # default to linear regression
+		model = LinearRegressionModel()
 
 	# Each client loads all the data generated
 	points = load_dataset_GNSS()

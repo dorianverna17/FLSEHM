@@ -9,6 +9,7 @@ class LinearRegressionModel:
 	def __init__(self):
 		self.model_lat = LinearRegression()
 		self.model_lon = LinearRegression()
+		self.name = "Linear Regression Model"
 
 	def get_parameters(self):
 		return [

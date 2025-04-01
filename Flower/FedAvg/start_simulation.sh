@@ -15,20 +15,20 @@ python Flower/FedAvg/start_data_generation.py
 if [ $# -eq 0 ]
 	then
 		echo "No arguments supplied, running linear regression_model"
-		MODEL=linear_regression
+		export FD_MODEL="linear_regression"
 	else
-		if [ $1 == "linear_regression" ]
+		if [ $1 = "linear_regression" ]
 			then
 				echo "running with linear regression"
-				MODEL=linear_regression
-		elif [ $1 == "nn_model" ]
+				export FD_MODEL="linear_regression"
+		elif [ $1 = "nn_model" ]
 			then
 				echo "running with a neural network model"
-				MODEL=nn_model
+				export FD_MODEL="nn_model"
 		else
 			echo "unimplemented model"
 			exit 1
 		fi
 fi
 
-python Flower/FedAvg/server.py $MODEL
+python Flower/FedAvg/server.py
