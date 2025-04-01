@@ -1,5 +1,6 @@
 from Models.linear_regression import LinearRegressionModel
-from Models.nn_model import NeuralNetworkModel
+# from Models.nn_model import NeuralNetworkModel
+from Models.neural_network_model import NeuralNetworkModel
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 

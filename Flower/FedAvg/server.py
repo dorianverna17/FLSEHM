@@ -1,5 +1,4 @@
 from Models.linear_regression import NUM_PARTITIONS
-from Models.linear_regression import LinearRegressionModel
 
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Callable
@@ -56,11 +55,17 @@ fixed_params = generate_fixed_parameters()
 
 params_nn_model = [tensor(p, dtype=float32) for p in fixed_params]
 
+# Initialize model with given parameters
+params_neural_network = [
+    np.array([[0.9, 0.1], [0.2, 0.8]]),  # Weights for input
+    np.array([1.0, -0.5])  # Biases
+]
+
 params = None
 if model_to_use == "linear_regression":
 	params = params_linear_regression
 elif model_to_use == "nn_model":
-	params = params_nn_model
+	params = params_neural_network
 else: # default to linear regression
 	params = params_linear_regression
 
