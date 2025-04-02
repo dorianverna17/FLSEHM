@@ -72,8 +72,15 @@ Flower/Markov/start_simulation.sh
 ## Flower FedAvg
 
 How to run
+
+Running with linear regression model option
 ```
-Flower/FedAvg/start_simulation.sh
+source Flower/FedAvg/start_simulation.sh linear_regression
+```
+
+Running with neural network model option
+```
+source Flower/FedAvg/start_simulation.sh nn_model
 ```
 
 # Running Conda

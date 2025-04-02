@@ -32,29 +32,6 @@ params_linear_regression = [
 	np.array([-0.5]),
 ]
 
-def generate_fixed_parameters():
-    """
-    Generates fixed initial parameters for a NeuralNetworkModel with input_dim=2.
-    """
-    input_dim = 2
-
-    lat_w1 = np.full((16, input_dim), 0.1)
-    lat_b1 = np.full((16,), 0.01)
-    lon_w1 = np.full((16, input_dim), 0.2)
-    lon_b1 = np.full((16,), 0.02)
-
-    lat_w2 = np.full((1, 16), 0.05)
-    lat_b2 = np.array([0.001])
-    lon_w2 = np.full((1, 16), 0.07)
-    lon_b2 = np.array([0.002])
-
-    return [lat_w1, lat_b1, lat_w2, lat_b2, lon_w1, lon_b1, lon_w2, lon_b2]
-
-# Example usage
-fixed_params = generate_fixed_parameters()
-
-params_nn_model = [tensor(p, dtype=float32) for p in fixed_params]
-
 # Initialize model with given parameters
 params_neural_network = [
     np.array([[0.9, 0.1], [0.2, 0.8]]),  # Weights for input
