@@ -25,6 +25,10 @@ if [ $# -eq 0 ]
 			then
 				echo "running with a neural network model"
 				export FD_MODEL="nn_model"
+		elif [ $1 = "nonlinear_nn_model" ]
+			then
+				echo "running with a nonlinear neural network model"
+				export FD_MODEL="nonlinear_nn_model"
 		else
 			echo "unimplemented model"
 			exit 1

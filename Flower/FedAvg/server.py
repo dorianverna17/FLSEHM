@@ -43,6 +43,8 @@ if model_to_use == "linear_regression":
 	params = params_linear_regression
 elif model_to_use == "nn_model":
 	params = params_neural_network
+elif model_to_use == "nonlinear_nn_model":
+	params = params_neural_network
 else: # default to linear regression
 	params = params_linear_regression
 

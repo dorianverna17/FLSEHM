@@ -1,5 +1,6 @@
 from Models.linear_regression import LinearRegressionModel
 from Models.neural_network_model import NeuralNetworkModel
+from Models.neural_network_nonlinear_model import NonlinearNeuralNetworkModel
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
@@ -111,6 +112,8 @@ def client_fn(context: Context) -> Client:
 		model = LinearRegressionModel()
 	elif model_to_use == "nn_model":
 		model = NeuralNetworkModel()
+	elif model_to_use == "nonlinear_nn_model":
+		model = NonlinearNeuralNetworkModel()
 	else: # default to linear regression
 		model = LinearRegressionModel()
 
