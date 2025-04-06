@@ -87,5 +87,5 @@ source Flower/FedAvg/start_simulation.sh nn_model
 
 Prerequisited: it is necessary to use the dependencies installed with Conda:
 ```
-export PATH="/opt/homebrew/anaconda3/bin:$PATH" \
+export PATH="/opt/homebrew/anaconda3/bin:$PATH"
 ```

@@ -68,7 +68,7 @@ while line:
 f.close()
 
 
-def generate_next_points():
+def generate_next_points(no_entries):
     """
     This function generates the next positions of all the devices
     that were part of the GNSS datasets.
@@ -77,7 +77,7 @@ def generate_next_points():
 		A list of ending points for the devices from the GNSS dataset
     """
     ending_points_list = []
-    for d in data:
+    for _ in range(no_entries):
         next_point = generate_random_point()
         ending_points_list.append(Point(next_point[0], next_point[1]))
     return ending_points_list
