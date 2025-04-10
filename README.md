@@ -83,6 +83,11 @@ Running with neural network model option
 source Flower/FedAvg/start_simulation.sh nn_model
 ```
 
+Running with nonlinear neural network model option
+```
+source Flower/FedAvg/start_simulation.sh nonlinear_nn_model
+```
+
 # Running Conda
 
 Prerequisited: it is necessary to use the dependencies installed with Conda:
