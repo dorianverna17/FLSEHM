@@ -1,6 +1,6 @@
 from Models.linear_regression import LinearRegressionModel
 from Models.neural_network_model import NeuralNetworkModel
-from Models.neural_network_nonlinear_model import NonlinearNeuralNetworkModel
+from Models.neural_network_nonlinear_model import NonlinearNeuralNetworkModel, create_initial_parameters
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
@@ -25,9 +25,9 @@ NUM_PARTITIONS = 10
 BATCH_SIZE = 32
 
 def split_data(x):
-    random.shuffle(x)  # Shuffles in place, does not return anything
-    split_idx = int(3 * len(x) / 4)  # Ensuring integer index
-    return x[:split_idx], x[split_idx:]
+	random.shuffle(x)  # Shuffles in place, does not return anything
+	split_idx = int(3 * len(x) / 4)  # Ensuring integer index
+	return x[:split_idx], x[split_idx:]
 
 # duplicated code, make sure to delete it at some point
 def module_from_file(module_name, file_path):
@@ -90,8 +90,10 @@ class FlowerClient(NumPyClient):
 		logging.info(f"[Client {self.partition_id}] evaluate, config: {config}")
 		
 		self.model.set_parameters(parameters)
-		final_lat, final_lon = self.model.predict(
+		final_lat, final_lon, p = self.model.predict(
 			[[elem.x, elem.y] for  elem in self.valloader[0]])
+		
+		logging.info(f"Client final lat and final lon {final_lat} {final_lon} {p}")
 
 		loss, accuracy = self.model.compute_loss_and_accuracy(self.valloader[0], final_lat, final_lon)
 
@@ -114,6 +116,8 @@ def client_fn(context: Context) -> Client:
 		model = NeuralNetworkModel()
 	elif model_to_use == "nonlinear_nn_model":
 		model = NonlinearNeuralNetworkModel()
+		initial_parameters = create_initial_parameters(model)
+		model.set_parameters(initial_parameters)
 	else: # default to linear regression
 		model = LinearRegressionModel()
 
