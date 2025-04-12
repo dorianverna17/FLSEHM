@@ -168,3 +168,4 @@ cython_debug/
 GNSS_datasets/*
 Datasets/*
 Evaluation/output/*
+Flower/FedAvg/generated_points/*

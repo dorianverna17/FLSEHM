@@ -22,7 +22,8 @@ from client import client_fn
 
 from constants import NO_CLIENTS
 
-from Models.neural_network_nonlinear_model import NonlinearNeuralNetworkModel, create_initial_parameters
+from Models.neural_network_nonlinear_model import NonlinearNeuralNetworkModel
+from Models.enhanced_model import EnhancedModel, create_initial_parameters
 
 # Create an instance of the model and get the parameters
 model_to_use = os.environ['FD_MODEL']
@@ -40,7 +41,7 @@ params_neural_network = [
     np.array([1.0, -0.5])  # Biases
 ]
 
-model = NonlinearNeuralNetworkModel()
+model = EnhancedModel()
 initial_parameters = create_initial_parameters(model)
 
 params = None
@@ -49,7 +50,9 @@ if model_to_use == "linear_regression":
 elif model_to_use == "nn_model":
 	params = params_neural_network
 elif model_to_use == "nonlinear_nn_model":
-	params = initial_parameters # we will set them in the client instead
+	params = params_neural_network
+elif model_to_use == "enhanced_model":
+	params = initial_parameters  # we will set them in the client instead
 else: # default to linear regression
 	params = params_linear_regression
 
