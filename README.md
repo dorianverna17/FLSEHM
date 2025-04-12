@@ -88,9 +88,16 @@ Running with nonlinear neural network model option
 source Flower/FedAvg/start_simulation.sh nonlinear_nn_model
 ```
 
-Running with enhanced neural network model option
+Running with enhanced neural network model option:
+
+1. Running with implicit model configuration
 ```
 source Flower/FedAvg/start_simulation.sh enhanced_model
+```
+
+2. Running with custom model configuration (the configuration should be in JSON format - e.g. config2.json)
+```
+source Flower/FedAvg/start_simulation.sh enhanced_model Flower/FedAvg/Models/models_config/config2.json
 ```
 
 # Running Conda

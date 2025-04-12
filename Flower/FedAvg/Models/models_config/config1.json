@@ -1,0 +1,40 @@
+{
+	"model_name": "basic_nonlinear_model",
+	"shape": 2,
+	"layers": [
+		{
+			"name": "hidden_layer_1",
+			"neurons": 8,
+			"type": "dense",
+			"activation": "relu"
+		},
+		{
+			"name": "hidden_layer_2",
+			"type": "dense",
+			"neurons": 8,
+			"activation": "relu"
+		},
+		{
+			"name": "output_layer",
+			"type": "dense",
+			"neurons": 2,
+			"activation": "linear"
+		}
+	],
+	"optimizer": "adam",
+	"learning_rate": 0.01,
+	"initial_parameters": [
+		{
+			"layer_weights": [-1, 1, [2, 8]],
+			"layer_biases": 8
+		},
+		{
+			"layer_weights": [-1, 1, [8, 8]],
+			"layer_biases": 8
+		},
+		{
+			"layer_weights": [-1, 1, [8, 2]],
+			"layer_biases": 2
+		}
+	]
+}

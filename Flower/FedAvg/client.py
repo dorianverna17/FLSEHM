@@ -1,7 +1,8 @@
 from Models.linear_regression import LinearRegressionModel
 from Models.neural_network_model import NeuralNetworkModel
 from Models.neural_network_nonlinear_model import NonlinearNeuralNetworkModel
-from Models.enhanced_model import EnhancedModel, create_initial_parameters
+from Models.enhanced_model import EnhancedModel
+from Models.models_config.model_config import ModelConfig
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
@@ -110,6 +111,7 @@ def client_fn(context: Context) -> Client:
 	partition_id = context.node_config["partition-id"]
 	num_partitions = context.node_config["num-partitions"]
 	model_to_use = os.environ['FD_MODEL']
+	model_config_file = os.environ['FD_MODEL_CONFIG']
 
 	if model_to_use == "linear_regression":
 		model = LinearRegressionModel()
@@ -118,9 +120,8 @@ def client_fn(context: Context) -> Client:
 	elif model_to_use == "nonlinear_nn_model":
 		model = NonlinearNeuralNetworkModel()
 	elif model_to_use == "enhanced_model":
-		model = EnhancedModel()
-		initial_parameters = create_initial_parameters(model)
-		model.set_parameters(initial_parameters)
+		model_config = ModelConfig(model_config_file)
+		model = EnhancedModel(model_config)
 	else: # default to linear regression
 		model = LinearRegressionModel()
 

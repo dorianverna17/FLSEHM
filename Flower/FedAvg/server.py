@@ -23,10 +23,12 @@ from client import client_fn
 from constants import NO_CLIENTS
 
 from Models.neural_network_nonlinear_model import NonlinearNeuralNetworkModel
-from Models.enhanced_model import EnhancedModel, create_initial_parameters
+from Models.enhanced_model import EnhancedModel
+from Models.models_config.model_config import ModelConfig
 
 # Create an instance of the model and get the parameters
 model_to_use = os.environ['FD_MODEL']
+model_config_file = os.environ['FD_MODEL_CONFIG']
 
 params_linear_regression = [
 	np.array([0.9, 0.1]),
@@ -41,8 +43,24 @@ params_neural_network = [
     np.array([1.0, -0.5])  # Biases
 ]
 
-model = EnhancedModel()
-initial_parameters = create_initial_parameters(model)
+params_enhanced_neural_network = [
+	np.random.uniform(-1, 1, (2, 8)),     # hidden_layer_1 weights
+	np.zeros(8),                         # hidden_layer_1 biases
+	np.random.uniform(-1, 1, (8, 8)),     # hidden_layer_2 weights
+	np.zeros(8),                         # hidden_layer_2 biases
+	np.random.uniform(-1, 1, (8, 2)),     # output_layer weights
+	np.zeros(2)                          # output_layer biases
+]
+
+def build_params(config):
+	params = []
+
+	for i, p in enumerate(model_config.initial_parameters):
+		weights = p['layer_weights']
+		biases = p['layer_biases']
+		params.append(np.random.uniform(weights[0], weights[1], (weights[2][0], weights[2][1])))
+		params.append(np.zeros(biases))
+	return params
 
 params = None
 if model_to_use == "linear_regression":
@@ -52,7 +70,8 @@ elif model_to_use == "nn_model":
 elif model_to_use == "nonlinear_nn_model":
 	params = params_neural_network
 elif model_to_use == "enhanced_model":
-	params = initial_parameters  # we will set them in the client instead
+	model_config = ModelConfig(model_config_file)
+	params = build_params(model_config)
 else: # default to linear regression
 	params = params_linear_regression
 
