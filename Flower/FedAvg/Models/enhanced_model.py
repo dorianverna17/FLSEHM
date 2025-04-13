@@ -1,6 +1,11 @@
 import numpy as np
 import tensorflow as tf
+
 from tensorflow import keras
+from keras.callbacks import EarlyStopping
+
+# Early stopping is disabled by default
+early_stopping = 0
 
 def construct_layer(layer):
 	if layer['type'] == 'dense':
@@ -11,7 +16,7 @@ def construct_layer(layer):
 		return keras.layers.Dropout(layer['neurons'],
 						activation=layer['activation'],
 						name=layer['name'])
-	elif layer['type'] == 'dropout':
+	elif layer['type'] == 'batch_normalization':
 		return keras.layers.BatchNormalization(layer['neurons'],
 						activation=layer['activation'],
 						name=layer['name'])
@@ -44,6 +49,10 @@ class EnhancedModel:
 	def build_model(self, config):
 		inputs = keras.Input(shape=(config.shape,))
 
+		# define whether we can should batch normalization
+		global early_stopping
+		early_stopping = config.early_stopping
+
 		# define first layer
 		x = construct_layer(config.layers[0])(inputs)
 
@@ -58,7 +67,7 @@ class EnhancedModel:
 		outputs = keras.layers.Dense(config.layers[index_out]['neurons'],
 						 activation=config.layers[index_out]['activation'],
 						 name=config.layers[index_out]['name'])(x)
-		
+
 		model = keras.Model(inputs=inputs, outputs=outputs)
 		model.compile(
 			optimizer=construct_optimizer(config.optimizer, config.learning_rate), loss='mse')
@@ -75,7 +84,12 @@ class EnhancedModel:
 	def train(self, X, y_lat, y_lon, epochs=100, batch_size=32):
 		y = np.column_stack((y_lat, y_lon))
 		X = np.array(X)
-		self.model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=0)
+
+		early_stop = None
+		if early_stopping == 1:
+			early_stop = EarlyStopping(monitor='loss', patience=10)
+
+		self.model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[early_stop])
 	
 	def predict(self, X):
 		X = np.array(X)

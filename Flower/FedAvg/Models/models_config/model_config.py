@@ -11,3 +11,4 @@ class ModelConfig():
 			self.optimizer = config['optimizer']
 			self.learning_rate = config['learning_rate']
 			self.initial_parameters = config['initial_parameters']
+			self.early_stopping = config['early_stopping']
