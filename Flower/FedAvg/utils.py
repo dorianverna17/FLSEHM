@@ -27,7 +27,7 @@ from flwr.simulation import run_simulation
 from flwr_datasets import FederatedDataset
 from flwr.common import ndarrays_to_parameters, NDArrays, Scalar, Context
 
-NUM_PARTITIONS = 10
+NUM_PARTITIONS = 11
 BATCH_SIZE = 32
 
 def load_datasets(partition_id: int, num_partitions: int):

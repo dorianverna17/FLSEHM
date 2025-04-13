@@ -95,7 +95,7 @@ def start_generation(random_hashes):
 		count += 1
 
 		# Timeout block - exit after 10 iterations
-		if count == 10:
+		if count == 20:
 			break
 
 

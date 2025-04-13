@@ -1,7 +1,7 @@
 # File that constains constants used in the program
 BASESTATIONS = 2
-NO_CLIENTS = 3
-FILES_TO_GENERATE = 10
+NO_CLIENTS = 10
+FILES_TO_GENERATE = 20
 RANDOM_SAMPLED_DEVICES = 1000
 HASH_LENGTH = 64
 

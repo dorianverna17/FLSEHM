@@ -2,6 +2,40 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
+def construct_layer(layer):
+	if layer['type'] == 'dense':
+		return keras.layers.Dense(layer['neurons'],
+						activation=layer['activation'],
+						name=layer['name'])
+	elif layer['type'] == 'dropout':
+		return keras.layers.Dropout(layer['neurons'],
+						activation=layer['activation'],
+						name=layer['name'])
+	elif layer['type'] == 'dropout':
+		return keras.layers.BatchNormalization(layer['neurons'],
+						activation=layer['activation'],
+						name=layer['name'])
+	return None
+
+
+def construct_optimizer(optimizer, learning_rate):
+	if optimizer == 'adam':
+		return keras.optimizers.Adam(learning_rate=learning_rate)
+	elif optimizer == 'SGD':
+		return keras.optimizers.SGD(learning_rate=learning_rate)
+	elif optimizer == 'RMSprop':
+		return keras.optimizers.RMSprop(learning_rate=learning_rate)
+	elif optimizer == 'Adagrad':
+		return keras.optimizers.Adagrad(learning_rate=learning_rate)
+	elif optimizer == 'Adadelta':
+		return keras.optimizers.Adadelta(learning_rate=learning_rate)
+	elif optimizer == 'Adamax':
+		return keras.optimizers.Adamax(learning_rate=learning_rate)
+	elif optimizer == 'Nadam':
+		return keras.optimizers.Nadam(learning_rate=learning_rate)
+	return None
+
+
 class EnhancedModel:
 	def __init__(self, config):
 		self.model = self.build_model(config)
@@ -11,9 +45,7 @@ class EnhancedModel:
 		inputs = keras.Input(shape=(config.shape,))
 
 		# define first layer
-		x = keras.layers.Dense(config.layers[0]['neurons'],
-						 activation=config.layers[0]['activation'],
-						 name=config.layers[0]['name'])(inputs)
+		x = construct_layer(config.layers[0])(inputs)
 
 		# loop through all the other hidden layers
 		for i in range(1, len(config.layers) - 1):
@@ -29,7 +61,7 @@ class EnhancedModel:
 		
 		model = keras.Model(inputs=inputs, outputs=outputs)
 		model.compile(
-			optimizer=keras.optimizers.Adam(learning_rate=config.learning_rate), loss='mse')
+			optimizer=construct_optimizer(config.optimizer, config.learning_rate), loss='mse')
 		
 		return model
 

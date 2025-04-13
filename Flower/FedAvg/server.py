@@ -134,8 +134,8 @@ def server_fn(context: Context) -> ServerAppComponents:
 		evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn(),
 	)
 
-	# Configure the server for 7 rounds of training
-	config = ServerConfig(num_rounds=7)
+	# Configure the server for 10 rounds of training
+	config = ServerConfig(num_rounds=10)
 	return ServerAppComponents(strategy=strategy, config=config)
 
 # Create ServerApp

@@ -5,8 +5,6 @@ class ModelConfig():
 		with open(json_config) as json_data:
 			config = json.load(json_data)
 
-			print(config)
-
 			self.model_name = config['model_name']
 			self.shape = config['shape']
 			self.layers = config['layers']
