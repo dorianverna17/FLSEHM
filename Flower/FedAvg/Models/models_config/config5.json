@@ -1,0 +1,61 @@
+{
+	"model_name": "deep_consistent_tanh",
+	"shape": 2,
+	"layers": [
+		{
+			"name": "hidden_layer_1",
+			"neurons": 12,
+			"type": "dense",
+			"activation": "tanh"
+		},
+		{
+			"name": "hidden_layer_2",
+			"neurons": 12,
+			"type": "dense",
+			"activation": "tanh"
+		},
+		{
+			"name": "hidden_layer_3",
+			"neurons": 10,
+			"type": "dense",
+			"activation": "tanh"
+		},
+		{
+			"name": "hidden_layer_4",
+			"neurons": 8,
+			"type": "dense",
+			"activation": "tanh"
+		},
+		{
+			"name": "output_layer",
+			"neurons": 2,
+			"type": "dense",
+			"activation": "softmax"
+		}
+	],
+	"optimizer": "rmsprop",
+	"early_stopping": 1,
+	"learning_rate": 0.01,
+	"initial_parameters": [
+		{
+			"layer_weights": [-1, 1, [2, 12]],
+			"layer_biases": 12
+		},
+		{
+			"layer_weights": [-1, 1, [12, 12]],
+			"layer_biases": 12
+		},
+		{
+			"layer_weights": [-1, 1, [12, 10]],
+			"layer_biases": 10
+		},
+		{
+			"layer_weights": [-1, 1, [10, 8]],
+			"layer_biases": 8
+		},
+		{
+			"layer_weights": [-1, 1, [8, 2]],
+			"layer_biases": 2
+		}
+	]
+}

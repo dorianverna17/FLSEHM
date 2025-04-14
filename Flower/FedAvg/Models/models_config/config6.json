@@ -1,0 +1,41 @@
+{
+	"model_name": "slim_softmax_output",
+	"shape": 2,
+	"layers": [
+		{
+			"name": "hidden_layer_1",
+			"neurons": 6,
+			"type": "dense",
+			"activation": "elu"
+		},
+		{
+			"name": "hidden_layer_2",
+			"neurons": 6,
+			"type": "dense",
+			"activation": "relu"
+		},
+		{
+			"name": "output_layer",
+			"neurons": 2,
+			"type": "dense",
+			"activation": "softmax"
+		}
+	],
+	"optimizer": "adam",
+	"early_stopping": 0,
+	"learning_rate": 0.015,
+	"initial_parameters": [
+		{
+			"layer_weights": [-0.2, 0.2, [2, 6]],
+			"layer_biases": 6
+		},
+		{
+			"layer_weights": [-0.2, 0.2, [6, 6]],
+			"layer_biases": 6
+		},
+		{
+			"layer_weights": [-0.2, 0.2, [6, 2]],
+			"layer_biases": 2
+		}
+	]
+}

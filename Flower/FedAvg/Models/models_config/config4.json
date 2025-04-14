@@ -1,0 +1,41 @@
+{
+	"model_name": "shallow_fast_converging",
+	"shape": 2,
+	"layers": [
+		{
+			"name": "hidden_layer_1",
+			"neurons": 10,
+			"type": "dense",
+			"activation": "leaky_relu"
+		},
+		{
+			"name": "hidden_layer_2",
+			"neurons": 6,
+			"type": "dense",
+			"activation": "relu"
+		},
+		{
+			"name": "output_layer",
+			"neurons": 2,
+			"type": "dense",
+			"activation": "linear"
+		}
+	],
+	"optimizer": "sgd",
+	"early_stopping": 1,
+	"learning_rate": 0.02,
+	"initial_parameters": [
+		{
+			"layer_weights": [-0.1, 0.1, [2, 10]],
+			"layer_biases": 10
+		},
+		{
+			"layer_weights": [-0.1, 0.1, [10, 6]],
+			"layer_biases": 6
+		},
+		{
+			"layer_weights": [-0.1, 0.1, [6, 2]],
+			"layer_biases": 2
+		}
+	]
+}

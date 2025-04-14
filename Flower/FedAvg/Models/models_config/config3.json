@@ -1,0 +1,61 @@
+{
+	"model_name": "mixed_activations_wide",
+	"shape": 2,
+	"layers": [
+		{
+			"name": "hidden_layer_1",
+			"neurons": 16,
+			"type": "dense",
+			"activation": "relu"
+		},
+		{
+			"name": "hidden_layer_2",
+			"neurons": 12,
+			"type": "dense",
+			"activation": "tanh"
+		},
+		{
+			"name": "hidden_layer_3",
+			"neurons": 10,
+			"type": "dense",
+			"activation": "sigmoid"
+		},
+		{
+			"name": "hidden_layer_4",
+			"neurons": 8,
+			"type": "dense",
+			"activation": "relu"
+		},
+		{
+			"name": "output_layer",
+			"neurons": 2,
+			"type": "dense",
+			"activation": "linear"
+		}
+	],
+	"optimizer": "adam",
+	"early_stopping": 1,
+	"learning_rate": 0.005,
+	"initial_parameters": [
+		{
+			"layer_weights": [-0.5, 0.5, [2, 16]],
+			"layer_biases": 16
+		},
+		{
+			"layer_weights": [-0.5, 0.5, [16, 12]],
+			"layer_biases": 12
+		},
+		{
+			"layer_weights": [-0.5, 0.5, [12, 10]],
+			"layer_biases": 10
+		},
+		{
+			"layer_weights": [-0.5, 0.5, [10, 8]],
+			"layer_biases": 8
+		},
+		{
+			"layer_weights": [-0.5, 0.5, [8, 2]],
+			"layer_biases": 2
+		}
+	]
+}
