@@ -85,11 +85,11 @@ class EnhancedModel:
 		y = np.column_stack((y_lat, y_lon))
 		X = np.array(X)
 
-		early_stop = None
+		callbacks = []
 		if early_stopping == 1:
-			early_stop = EarlyStopping(monitor='loss', patience=10)
+			callbacks.append(EarlyStopping(monitor='loss', patience=10))
 
-		self.model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[early_stop])
+		self.model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=callbacks)
 	
 	def predict(self, X):
 		X = np.array(X)

@@ -1,5 +1,5 @@
 {
-	"model_name": "slim_softmax_output",
+	"model_name": "slim_linear_output",
 	"shape": 2,
 	"layers": [
 		{
@@ -18,7 +18,7 @@
 			"name": "output_layer",
 			"neurons": 2,
 			"type": "dense",
-			"activation": "softmax"
+			"activation": "linear"
 		}
 	],
 	"optimizer": "adam",

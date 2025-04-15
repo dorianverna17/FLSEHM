@@ -30,10 +30,10 @@
 			"name": "output_layer",
 			"neurons": 2,
 			"type": "dense",
-			"activation": "softmax"
+			"activation": "linear"
 		}
 	],
-	"optimizer": "rmsprop",
+	"optimizer": "adam",
 	"early_stopping": 1,
 	"learning_rate": 0.01,
 	"initial_parameters": [
