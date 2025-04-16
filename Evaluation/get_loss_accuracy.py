@@ -3,6 +3,7 @@
 # and median accuracy for each model
 
 import matplotlib.pylab as plt
+import os
 
 EXISTENT_MODELS=[
 	"linear_regression",
@@ -10,14 +11,27 @@ EXISTENT_MODELS=[
 	"nonlinear_nn_model",
 ]
 
-ROUNDS_RAN = 7
+# if we want to display the enhanced model, we have to look at each configuration
+# contained within its output directory
+config_list = [dir[0] for dir in os.walk("Evaluation/output/enhanced_model")]
+config_list = [c[c.find("enhanced_model"):] for c in config_list]
+config_list = config_list[1:]
+EXISTENT_MODELS += config_list
+
+print(EXISTENT_MODELS)
+
+ROUNDS_RAN = 10
 
 # this is a dictionary containing metrics for our models
 model_metric_dictionary = {}
 
 for i, model in enumerate(EXISTENT_MODELS):
 	# read the corresponding err file as it contains the Flower logs
-	model_metric_dictionary[model] = [0, 0]
+	index_enhanced = model.find("enhanced_model")
+	model_name = model
+	if index_enhanced != -1:
+		model_name = model[index_enhanced + 15:]
+	model_metric_dictionary[model_name] = [0, 0]
 	for j in range(0, 10):
 		f = open(f"Evaluation/output/{model}/{j}.err")
 
@@ -25,24 +39,25 @@ for i, model in enumerate(EXISTENT_MODELS):
 			if line.endswith(")]}\n"):
 				accuracy = line[line.find(f"({ROUNDS_RAN}, ") + len(str(ROUNDS_RAN)) + 3:line.find(")]}")]
 				print(f"Final accuracy for (model: {model}, iteration: {j}): ", accuracy)
-				model_metric_dictionary[model][0] += float(accuracy)
+				model_metric_dictionary[model_name][0] += float(accuracy)
 			elif line.find(f"round {ROUNDS_RAN}: ") > 0:
 				loss = line[line.find(f"round {ROUNDS_RAN}: ") + len(str(ROUNDS_RAN)) + 8:-1]
 				print(f"Final loss for (model: {model}, iteration: {j}): ", loss)
-				model_metric_dictionary[model][1] += float(loss)
+				model_metric_dictionary[model_name][1] += float(loss)
 
 		f.close()
-	model_metric_dictionary[model][0] /= 10.0
-	model_metric_dictionary[model][1] /= 10.0
+
+	model_metric_dictionary[model_name][0] /= 10.0
+	model_metric_dictionary[model_name][1] /= 10.0
 
 accuracies = list(map(lambda x: x[0], list(model_metric_dictionary.values())))
 losses = list(map(lambda x: x[1], list(model_metric_dictionary.values())))
 
-plt.figure(1)
+plt.figure(1, figsize=(15, 5))
 plt.title("Accuracies")
 plt.plot(list(model_metric_dictionary.keys()), accuracies)
 
-plt.figure(2)
+plt.figure(2, figsize=(15, 5))
 plt.title("Losses")
 plt.plot(list(model_metric_dictionary.keys()), losses)
 
