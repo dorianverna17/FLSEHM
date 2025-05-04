@@ -77,13 +77,13 @@ def get_closest_point(proxy_position: Point, node_id: int,
 
 	# Iterate over the points
 	for i, p in enumerate(points[1]):
-		x, y = p[0].x, p[0].y
+		x, y = p[1].x, p[1].y
 		# compute euclidian distance
 		distance = math.dist([x, y], [proxy_position[0], proxy_position[1]])
 		# 0.1 degrees is ~11 km, this is the threshold by which we
 		# can consider a point as being close to the proxy
 		if distance < 0.1:
-			close_points.append((Point(x, y), p[1]))
+			close_points.append((p[0], p[1]))
 
 	return close_points
 

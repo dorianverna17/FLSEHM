@@ -9,7 +9,7 @@ class NonlinearNeuralNetworkModel:
 	
 	def build_model(self):
 		inputs = keras.Input(shape=(2,))
-		outputs = keras.layers.Dense(2, activation='linear', name="output_layer")(inputs)
+		outputs = keras.layers.Dense(2, activation='relu', name="output_layer")(inputs)
 		model = keras.Model(inputs=inputs, outputs=outputs)
 		model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01), loss='mse')
 		return model
