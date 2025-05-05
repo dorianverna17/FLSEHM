@@ -31,7 +31,7 @@ def start_generation():
 
 	while True:
 		# Generate points
-		new_points = sim.generate_next_points()
+		new_points = sim.generate_next_points(len(hash_ids))
 
 		filename = os.path.join(output_dir, f"generated_points_{count}.txt")
 		with open(filename, "w+") as file:
